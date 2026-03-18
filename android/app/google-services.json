@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "1092233832620",
+    "project_id": "pocketpilot-4e71d",
+    "storage_bucket": "pocketpilot-4e71d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1092233832620:android:7fec4895ab676f5e245709",
+        "android_client_info": {
+          "package_name": "com.themukeshdev.pocketpilot"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1092233832620-tmkbjk20m90ilh9g93f1kmeflf4tkq3o.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.themukeshdev.pocketpilot",
+            "certificate_hash": "7491617c1756af3a0c8894aafb94c9d6bcd810be"
+          }
+        },
+        {
+          "client_id": "1092233832620-2jh0v57flu22q9lkic0r46sc0nnigtvf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyALKUlW5cuWxYqUrCkEjfaHIGpxhn-NWgc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1092233832620-2jh0v57flu22q9lkic0r46sc0nnigtvf.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
