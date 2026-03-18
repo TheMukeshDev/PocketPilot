@@ -1,5 +1,6 @@
 
 # PocketPilot – Smart Budget Tracker for Students
+![App Logo](screenshots/logo.jpeg)
 
 **Hackathon:** TRAE Re{Vibe}
 **Team Name:** Quantum Coders
@@ -270,13 +271,11 @@ MIT License
 
 > Add real app screenshots in the `screenshots/` folder and keep names in sync.
 
-![Login Screen](screenshots/login.png)
-![Home Screen](screenshots/home.png)
-![Add Expense Screen](screenshots/add_expense.png)
-![Monthly Report Screen](screenshots/monthly_report.png)
-![Weekly Trends Screen](screenshots/weekly_trends.png)
-
----
+![Login Screen](screenshots/login.jpeg)
+![Home Screen](screenshots/home.jpeg)
+![Add Expense Screen](screenshots/add_expense.jpeg)
+![Settings Screen](screenshots/settings.jpeg)
+![Scan QR & Pay Screen](screenshots/scan.jpeg)
 
 ## Quick Commands
 
