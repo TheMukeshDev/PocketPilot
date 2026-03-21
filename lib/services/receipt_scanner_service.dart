@@ -64,44 +64,156 @@ class ReceiptScannerService {
   // Keywords per category (case-insensitive match against full OCR text).
   static const Map<String, List<String>> _categoryKeywords = {
     'Food': [
-      'zomato', 'swiggy', 'restaurant', 'cafe', 'dhaba', 'pizza', 'burger',
-      'food', 'meal', 'lunch', 'dinner', 'breakfast', 'biryani', 'chai',
-      'tea', 'coffee', 'bakery', 'canteen', 'juice', 'kitchen', 'snack',
-      'sweet', 'dominos', 'mcdonald', 'kfc', 'subway', 'haldiram',
+      'zomato',
+      'swiggy',
+      'restaurant',
+      'cafe',
+      'dhaba',
+      'pizza',
+      'burger',
+      'food',
+      'meal',
+      'lunch',
+      'dinner',
+      'breakfast',
+      'biryani',
+      'chai',
+      'tea',
+      'coffee',
+      'bakery',
+      'canteen',
+      'juice',
+      'kitchen',
+      'snack',
+      'sweet',
+      'dominos',
+      'mcdonald',
+      'kfc',
+      'subway',
+      'haldiram',
     ],
     'Travel': [
-      'uber', 'ola', 'rapido', 'metro', 'bmtc', 'dtc', 'bus', 'train',
-      'auto', 'petrol', 'fuel', 'diesel', 'parking', 'toll', 'flight',
-      'ticket', 'cab', 'taxi', 'irctc', 'makemytrip', 'yatra', 'redbus',
+      'uber',
+      'ola',
+      'rapido',
+      'metro',
+      'bmtc',
+      'dtc',
+      'bus',
+      'train',
+      'auto',
+      'petrol',
+      'fuel',
+      'diesel',
+      'parking',
+      'toll',
+      'flight',
+      'ticket',
+      'cab',
+      'taxi',
+      'irctc',
+      'makemytrip',
+      'yatra',
+      'redbus',
     ],
     'Shopping': [
-      'amazon', 'flipkart', 'myntra', 'meesho', 'shop', 'store', 'mart',
-      'mall', 'bigbasket', 'blinkit', 'zepto', 'instamart', 'dmart',
-      'reliance smart', 'supermarket', 'grocery',
+      'amazon',
+      'flipkart',
+      'myntra',
+      'meesho',
+      'shop',
+      'store',
+      'mart',
+      'mall',
+      'bigbasket',
+      'blinkit',
+      'zepto',
+      'instamart',
+      'dmart',
+      'reliance smart',
+      'supermarket',
+      'grocery',
     ],
     'Recharge': [
-      'airtel', 'jio', 'vi ', 'vodafone', 'bsnl', 'recharge', 'prepaid',
-      'postpaid', 'dth', 'tata sky', 'dish tv', 'broadband',
+      'airtel',
+      'jio',
+      'vi ',
+      'vodafone',
+      'bsnl',
+      'recharge',
+      'prepaid',
+      'postpaid',
+      'dth',
+      'tata sky',
+      'dish tv',
+      'broadband',
     ],
     'Medical': [
-      'pharmacy', 'medical', 'hospital', 'doctor', 'clinic', 'medicine',
-      'health', 'diagnostic', 'lab', 'apollo', 'netmeds', '1mg',
-      'pharmeasy', 'chemist', 'dispensary',
+      'pharmacy',
+      'medical',
+      'hospital',
+      'doctor',
+      'clinic',
+      'medicine',
+      'health',
+      'diagnostic',
+      'lab',
+      'apollo',
+      'netmeds',
+      '1mg',
+      'pharmeasy',
+      'chemist',
+      'dispensary',
     ],
     'Utilities': [
-      'electricity', 'water bill', 'gas bill', 'maintenance', 'society fee',
-      'bescom', 'bses', 'tpddl', 'igl', 'mahanagar gas', 'electric bill',
+      'electricity',
+      'water bill',
+      'gas bill',
+      'maintenance',
+      'society fee',
+      'bescom',
+      'bses',
+      'tpddl',
+      'igl',
+      'mahanagar gas',
+      'electric bill',
     ],
     'Entertainment': [
-      'netflix', 'spotify', 'hotstar', 'prime video', 'youtube premium',
-      'cinema', 'movie', 'theatre', 'pvr', 'inox', 'bookmyshow', 'gaming',
+      'netflix',
+      'spotify',
+      'hotstar',
+      'prime video',
+      'youtube premium',
+      'cinema',
+      'movie',
+      'theatre',
+      'pvr',
+      'inox',
+      'bookmyshow',
+      'gaming',
     ],
     'Study': [
-      'book', 'course fee', 'udemy', 'fees', 'tuition', 'college fee',
-      'school fee', 'exam', 'stationery', 'coursera', 'byju', 'unacademy',
+      'book',
+      'course fee',
+      'udemy',
+      'fees',
+      'tuition',
+      'college fee',
+      'school fee',
+      'exam',
+      'stationery',
+      'coursera',
+      'byju',
+      'unacademy',
     ],
     'Personal': [
-      'salon', 'spa', 'haircut', 'gym', 'fitness', 'barber', 'beauty',
+      'salon',
+      'spa',
+      'haircut',
+      'gym',
+      'fitness',
+      'barber',
+      'beauty',
       'parlour',
     ],
   };
@@ -119,11 +231,12 @@ class ReceiptScannerService {
     final category = _detectCategory(rawText);
 
     if (_shouldUseGemini(
-      rawText: rawText,
-      amount: amount,
-      title: title,
-      category: category,
-    ) && isGeminiAvailable) {
+          rawText: rawText,
+          amount: amount,
+          title: title,
+          category: category,
+        ) &&
+        isGeminiAvailable) {
       try {
         return await _analyzeWithGemini(
           imagePath,
@@ -230,7 +343,8 @@ class ReceiptScannerService {
       dotAll: true,
     ).firstMatch(normalized);
     if (currencyMatch != null) {
-      return double.tryParse(currencyMatch.group(1)!.replaceAll(',', ''))?.round();
+      return double.tryParse(currencyMatch.group(1)!.replaceAll(',', ''))
+          ?.round();
     }
 
     final lines = normalized
@@ -245,7 +359,9 @@ class ReceiptScannerService {
         continue;
       }
 
-      for (var offset = 0; offset <= 4 && index + offset < lines.length; offset++) {
+      for (var offset = 0;
+          offset <= 4 && index + offset < lines.length;
+          offset++) {
         final candidate = _parseStandaloneAmount(lines[index + offset]);
         if (candidate != null) {
           return candidate;
@@ -314,7 +430,8 @@ class ReceiptScannerService {
         caseSensitive: false,
       ),
       RegExp(r'payment\s+to\s+([^\n₹\d@]{3,50})', caseSensitive: false),
-      RegExp(r'you\s+paid\s+(?:₹[\d,]+\s+)?to\s+([^\n₹\d@]{3,50})', caseSensitive: false),
+      RegExp(r'you\s+paid\s+(?:₹[\d,]+\s+)?to\s+([^\n₹\d@]{3,50})',
+          caseSensitive: false),
     ];
 
     for (final re in upiPatterns) {
@@ -329,7 +446,8 @@ class ReceiptScannerService {
     final meaningful = text.split('\n').map((l) => l.trim()).where((l) {
       if (l.length < 3) return false;
       if (RegExp(r'^[\d\s.,\-/:+()]+$').hasMatch(l)) return false;
-      if (RegExp(r'^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}').hasMatch(l)) return false;
+      if (RegExp(r'^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}').hasMatch(l))
+        return false;
       if (l.contains('@') && l.length < 40) return false; // UPI VPA
       if (RegExp(
         r'^(txn|ref|utr|order|trans|invoice|gstin|gst)\s*[:\-#]?\s*\d',
@@ -338,12 +456,17 @@ class ReceiptScannerService {
       return true;
     });
 
-    return meaningful.isNotEmpty ? _cleanExtractedTitle(meaningful.first) : null;
+    return meaningful.isNotEmpty
+        ? _cleanExtractedTitle(meaningful.first)
+        : null;
   }
 
   static String _cleanExtractedTitle(String raw) {
     final cleaned = raw
-        .replaceAll(RegExp(r'\b(transaction successful|learn more|message|paid)\b', caseSensitive: false), '')
+        .replaceAll(
+            RegExp(r'\b(transaction successful|learn more|message|paid)\b',
+                caseSensitive: false),
+            '')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
     return _toTitleCase(cleaned);
@@ -360,8 +483,18 @@ class ReceiptScannerService {
 
   static DateTime? _extractDate(String text) {
     const monthMap = {
-      'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
-      'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
+      'jan': 1,
+      'feb': 2,
+      'mar': 3,
+      'apr': 4,
+      'may': 5,
+      'jun': 6,
+      'jul': 7,
+      'aug': 8,
+      'sep': 9,
+      'oct': 10,
+      'nov': 11,
+      'dec': 12,
     };
 
     // "15 Jan 2025" or "15-Jan-25"
@@ -494,24 +627,24 @@ class ReceiptScannerService {
     final mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
 
     final prompt =
-      'You are PocketPilot receipt classifier. Analyze this payment screenshot or receipt carefully.\n'
-      'Return ONLY one compact JSON object with these keys: amount, title, date, category.\n'
-      'Rules:\n'
-      '- amount: final paid amount as integer number only. Ignore times, phone numbers, balances, IDs, data speeds, OTPs, and UPI ids.\n'
-      '- title: merchant name or short spending purpose, 2 to 5 words. Do not return generic labels like Transaction Successful or Paid.\n'
-      '- date: YYYY-MM-DD or null.\n'
-      '- category must be exactly one of: Food, Travel, Shopping, Recharge, Medical, Utilities, Entertainment, Study, Personal, Other.\n'
-      '- For Travel, use it for cab, auto, metro, train, bus, flight, fuel, petrol, parking, toll, ticket, commute, Rapido, Uber, Ola, IRCTC.\n'
-      '- Prioritize the spending purpose, not the payment app name.\n'
-      '- If the screenshot is a person-to-person transfer and the purpose is unclear, keep category as Other.\n'
-      '- Use OCR hints when useful but correct obvious OCR mistakes.\n\n'
-      'OCR hints:\n'
-      '- amount: ${ocrAmount?.toString() ?? 'null'}\n'
-      '- title: ${ocrTitle ?? 'null'}\n'
-      '- category: $ocrCategory\n'
-      '- date: ${ocrDate?.toIso8601String().split('T').first ?? 'null'}\n\n'
-      'Response example:\n'
-      '{"amount":250,"title":"Metro Recharge","date":"2025-01-15","category":"Travel"}';
+        'You are PocketPilot receipt classifier. Analyze this payment screenshot or receipt carefully.\n'
+        'Return ONLY one compact JSON object with these keys: amount, title, date, category.\n'
+        'Rules:\n'
+        '- amount: final paid amount as integer number only. Ignore times, phone numbers, balances, IDs, data speeds, OTPs, and UPI ids.\n'
+        '- title: merchant name or short spending purpose, 2 to 5 words. Do not return generic labels like Transaction Successful or Paid.\n'
+        '- date: YYYY-MM-DD or null.\n'
+        '- category must be exactly one of: Food, Travel, Shopping, Recharge, Medical, Utilities, Entertainment, Study, Personal, Other.\n'
+        '- For Travel, use it for cab, auto, metro, train, bus, flight, fuel, petrol, parking, toll, ticket, commute, Rapido, Uber, Ola, IRCTC.\n'
+        '- Prioritize the spending purpose, not the payment app name.\n'
+        '- If the screenshot is a person-to-person transfer and the purpose is unclear, keep category as Other.\n'
+        '- Use OCR hints when useful but correct obvious OCR mistakes.\n\n'
+        'OCR hints:\n'
+        '- amount: ${ocrAmount?.toString() ?? 'null'}\n'
+        '- title: ${ocrTitle ?? 'null'}\n'
+        '- category: $ocrCategory\n'
+        '- date: ${ocrDate?.toIso8601String().split('T').first ?? 'null'}\n\n'
+        'Response example:\n'
+        '{"amount":250,"title":"Metro Recharge","date":"2025-01-15","category":"Travel"}';
 
     final response = await http
         .post(
@@ -548,8 +681,7 @@ class ReceiptScannerService {
 
     final bodyMap = jsonDecode(response.body) as Map<String, dynamic>;
     final content =
-        bodyMap['candidates']?[0]?['content']?['parts']?[0]?['text']
-            as String?;
+        bodyMap['candidates']?[0]?['content']?['parts']?[0]?['text'] as String?;
     if (content == null) throw Exception('Empty Gemini response');
 
     final jsonStr =
@@ -569,7 +701,9 @@ class ReceiptScannerService {
     }
 
     return ScannedReceiptData(
-      title: (rawTitle?.isNotEmpty ?? false) ? _cleanExtractedTitle(rawTitle!) : ocrTitle,
+      title: (rawTitle?.isNotEmpty ?? false)
+          ? _cleanExtractedTitle(rawTitle!)
+          : ocrTitle,
       amount: amount,
       category: category,
       date: date,

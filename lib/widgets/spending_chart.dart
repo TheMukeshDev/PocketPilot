@@ -49,7 +49,8 @@ class SpendingChart extends StatelessWidget {
     };
 
     for (final expense in monthExpenses) {
-      final key = totals.containsKey(expense.category) ? expense.category : 'Other';
+      final key =
+          totals.containsKey(expense.category) ? expense.category : 'Other';
       totals[key] = totals[key]! + expense.amount;
     }
 
@@ -70,10 +71,10 @@ class SpendingChart extends StatelessWidget {
   Widget build(BuildContext context) {
     final monthExpenses = _currentMonthExpenses;
     final totals = _categorySpending(monthExpenses);
-    final totalSpent = totals.values.fold<double>(0, (sum, value) => sum + value);
-    final activeCategories = kExpenseCategories
-        .where((category) => totals[category]! > 0)
-        .toList();
+    final totalSpent =
+        totals.values.fold<double>(0, (sum, value) => sum + value);
+    final activeCategories =
+        kExpenseCategories.where((category) => totals[category]! > 0).toList();
 
     if (totalSpent == 0) {
       return const SizedBox(

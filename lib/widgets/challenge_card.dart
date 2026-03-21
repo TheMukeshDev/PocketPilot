@@ -48,8 +48,8 @@ class _ChallengeCardState extends State<ChallengeCard>
   @override
   void didUpdateWidget(covariant ChallengeCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final becameCompleted = !oldWidget.challenge.isCompleted &&
-        widget.challenge.isCompleted;
+    final becameCompleted =
+        !oldWidget.challenge.isCompleted && widget.challenge.isCompleted;
     if ((widget.highlightCompletion || becameCompleted) &&
         widget.challenge.isCompleted) {
       _confettiController.play();

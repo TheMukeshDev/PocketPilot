@@ -6,6 +6,7 @@ import '../models/expense.dart';
 import '../services/auth_service.dart';
 import '../services/expense_service.dart';
 import '../widgets/main_bottom_nav.dart';
+import 'add_expense_screen.dart';
 import 'payment_history_screen.dart';
 import 'scan_receipt_screen.dart';
 import 'scan_qr_payment_screen.dart';
@@ -74,9 +75,49 @@ class _AlertsScreenState extends State<AlertsScreen> {
   }
 
   Future<void> _openAddReceiptFlow() async {
-    final newExpense = await Navigator.of(context).push<Expense>(
-      MaterialPageRoute(builder: (_) => const ScanReceiptScreen()),
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.document_scanner_rounded),
+                title: const Text('Scan Receipt'),
+                subtitle: const Text('Use camera/gallery auto-detection'),
+                onTap: () => Navigator.of(sheetContext).pop('scan'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.edit_note_rounded),
+                title: const Text('Add Manually'),
+                subtitle: const Text('Enter title, amount and category'),
+                onTap: () => Navigator.of(sheetContext).pop('manual'),
+              ),
+            ],
+          ),
+        );
+      },
     );
+
+    if (!mounted || action == null) {
+      return;
+    }
+
+    Expense? newExpense;
+
+    if (action == 'manual') {
+      newExpense = await Navigator.of(context).push<Expense>(
+        MaterialPageRoute(builder: (context) => const AddExpenseScreen()),
+      );
+    } else {
+      newExpense = await Navigator.of(context).push<Expense>(
+        MaterialPageRoute(builder: (_) => const ScanReceiptScreen()),
+      );
+    }
 
     if (newExpense == null || !mounted) {
       return;
@@ -104,7 +145,8 @@ class _AlertsScreenState extends State<AlertsScreen> {
       bottomNavigationBar: MainBottomNav(
         currentTab: AppBottomTab.alerts,
         alertsCount: widget.alertMessages.length,
-        onHomeTap: () => Navigator.of(context).popUntil((route) => route.isFirst),
+        onHomeTap: () =>
+            Navigator.of(context).popUntil((route) => route.isFirst),
         onAlertsTap: () {},
         onPayTap: _openPayFlow,
         onAddReceiptTap: _openAddReceiptFlow,

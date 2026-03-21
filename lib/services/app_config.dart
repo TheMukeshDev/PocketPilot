@@ -11,6 +11,14 @@ class AppConfig {
     'GEMINI_API_KEY',
     defaultValue: '',
   );
+  static const String _mongoUriFallback = String.fromEnvironment(
+    'MONGO_URI',
+    defaultValue: '',
+  );
+  static const String _mongoDbNameFallback = String.fromEnvironment(
+    'MONGO_DB_NAME',
+    defaultValue: 'budget_tracker',
+  );
 
   static Future<void> load() async {
     try {
@@ -60,19 +68,38 @@ class AppConfig {
     return _geminiApiKeyFallback.trim();
   }
 
-    static String get firebaseApiKey =>
-      _requiredValue('FIREBASE_API_KEY');
+  static String? get mongoUri {
+    final configured = _stringValue('MONGO_URI');
+    if (configured != null && configured.isNotEmpty) {
+      return configured;
+    }
 
-    static String get firebaseAppId =>
-      _requiredValue('FIREBASE_APP_ID');
+    if (_mongoUriFallback.isNotEmpty) {
+      return _mongoUriFallback;
+    }
 
-    static String get firebaseMessagingSenderId =>
+    return null;
+  }
+
+  static String get mongoDbName {
+    final configured = _stringValue('MONGO_DB_NAME');
+    if (configured != null && configured.isNotEmpty) {
+      return configured;
+    }
+
+    return _mongoDbNameFallback;
+  }
+
+  static String get firebaseApiKey => _requiredValue('FIREBASE_API_KEY');
+
+  static String get firebaseAppId => _requiredValue('FIREBASE_APP_ID');
+
+  static String get firebaseMessagingSenderId =>
       _requiredValue('FIREBASE_MESSAGING_SENDER_ID');
 
-    static String get firebaseProjectId =>
-      _requiredValue('FIREBASE_PROJECT_ID');
+  static String get firebaseProjectId => _requiredValue('FIREBASE_PROJECT_ID');
 
-    static String get firebaseStorageBucket =>
+  static String get firebaseStorageBucket =>
       _requiredValue('FIREBASE_STORAGE_BUCKET');
 
   static String? _stringValue(String key) {

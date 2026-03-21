@@ -81,7 +81,8 @@ class UpiPaymentValidators {
   }) {
     return UpiPaymentValidationResult(
       upiId: normalizeUpiId(upiId),
-      receiverName: normalizeDisplayText(receiverName, fallback: 'UPI Merchant'),
+      receiverName:
+          normalizeDisplayText(receiverName, fallback: 'UPI Merchant'),
       amount: parseAmount(amountText),
       note: normalizeDisplayText(note, fallback: 'PocketPilot Payment'),
     );

@@ -10,8 +10,9 @@ import '../models/expense.dart';
 import '../models/challenge.dart';
 import '../services/app_config.dart';
 import '../services/budget_cycle_preferences.dart';
+import '../services/date_cycle_service.dart';
 import '../services/auth_service.dart';
-import '../services/challenge_service.dart';
+import '../services/gamification_service.dart';
 import '../services/database_service.dart';
 import '../services/expense_service.dart';
 import '../services/financial_score_service.dart';
@@ -142,17 +143,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   DateTime get _currentCycleStart {
     final now = DateTime.now();
-    final startDay = BudgetCyclePreferences.normalizeDay(_budgetCycleStartDay);
-    if (now.day >= startDay) {
-      return DateTime(now.year, now.month, startDay);
-    }
-
-    final previousMonth = DateTime(now.year, now.month - 1, 1);
-    return DateTime(previousMonth.year, previousMonth.month, startDay);
+    final dateService = DateCycleService.instance;
+    final startDate = DateTime(now.year, now.month, _budgetCycleStartDay);
+    return dateService.getCycleStart(startDate);
   }
 
-  DateTime get _currentCycleEnd =>
-      DateTime(_currentCycleStart.year, _currentCycleStart.month + 1, _currentCycleStart.day);
+  DateTime get _currentCycleEnd {
+    final dateService = DateCycleService.instance;
+    return dateService.getCycleEnd(_currentCycleStart);
+  }
 
   List<Expense> get _currentCycleExpenses {
     return expenses.where((expense) {
@@ -198,6 +197,8 @@ class _HomeScreenState extends State<HomeScreen> {
   PredictionResult get _prediction => PredictionService.analyze(
         totalSpent: totalSpent,
         availableBudget: availableBudget,
+        cycleStart: _currentCycleStart,
+        cycleEnd: _currentCycleEnd,
       );
 
   FinancialScoreBreakdown get _financialHealthScore =>
@@ -271,8 +272,8 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       await ExpenseService.instance.syncNow(currentUser);
 
-      final updated = await ExpenseService.instance
-          .getExpensesForUser(currentUser);
+      final updated =
+          await ExpenseService.instance.getExpensesForUser(currentUser);
 
       if (!mounted) {
         return;
@@ -461,7 +462,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ListTile(
                 leading: const Icon(Icons.edit_note_rounded),
                 title: const Text('Add Manually'),
-                subtitle: const Text('Enter title, amount and category yourself'),
+                subtitle:
+                    const Text('Enter title, amount and category yourself'),
                 onTap: () => Navigator.of(sheetContext).pop('manual'),
               ),
               const SizedBox(height: 4),
@@ -546,6 +548,8 @@ class _HomeScreenState extends State<HomeScreen> {
           expenses: expenses,
           monthlyBudget: _monthlyBudget,
           rent: _rent,
+          cycleStart: _currentCycleStart,
+          cycleEnd: _currentCycleEnd,
         ),
       ),
     );
@@ -620,7 +624,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (widget.expenseStore != null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Offline mode active. Data is stored locally.')),
+          const SnackBar(
+              content: Text('Offline mode active. Data is stored locally.')),
         );
       }
       return;
@@ -629,7 +634,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!_isOnline) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No internet. Working in offline mode.')),
+          const SnackBar(
+              content: Text('No internet. Working in offline mode.')),
         );
       }
       return;
@@ -658,7 +664,8 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Sync timed out. Offline mode continues with local data.'),
+          content:
+              Text('Sync timed out. Offline mode continues with local data.'),
         ),
       );
     } catch (_) {
@@ -675,15 +682,64 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _fetchFromCloud() async {
+    if (_isSyncing) {
+      return;
+    }
+
+    if (!_isOnline) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('No internet. Showing local data only.')),
+        );
+      }
+      return;
+    }
+
+    final currentUser = AuthService.instance.currentUser;
+    if (currentUser == null) {
+      return;
+    }
+
+    setState(() => _isSyncing = true);
+    try {
+      await ExpenseService.instance.syncAndFetch(currentUser);
+      await _loadLocalExpenses();
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Latest cloud data fetched successfully.')),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                'Unable to fetch cloud data now. Showing local snapshot.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSyncing = false);
+      }
+    }
+  }
+
   Future<void> _refreshChallenges() async {
     final currentUser = AuthService.instance.currentUser;
     final effectiveUserId = widget.userId ?? currentUser?.id ?? 'guest';
 
-    final evaluation = await ChallengeService.instance.evaluateChallenges(
-      expenses: expenses,
+    final evaluation = await GamificationService.instance.evaluateChallenges(
+      expenses: _currentCycleExpenses,
       dailyLimit: dailySpendingLimit,
       availableBudget: availableBudget,
       userId: effectiveUserId,
+      cycleStart: _currentCycleStart,
+      cycleEnd: _currentCycleEnd,
     );
 
     if (!mounted) {
@@ -693,8 +749,9 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _activeChallenges = evaluation.challenges;
       _gamificationStats = evaluation.stats;
-      _recentlyCompletedChallengeId =
-          evaluation.newlyCompleted.isEmpty ? null : evaluation.newlyCompleted.first.challenge.id;
+      _recentlyCompletedChallengeId = evaluation.newlyCompleted.isEmpty
+          ? null
+          : evaluation.newlyCompleted.first.challenge.id;
     });
 
     for (final badge in evaluation.newlyUnlockedBadges) {
@@ -733,8 +790,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final savedAmount = challenge.challengeType == ChallengeType.daily
         ? (challenge.targetAmount - todaySpent).clamp(0, challenge.targetAmount)
         : challenge.challengeType == ChallengeType.weekly
-          ? challenge.targetAmount
-          : _gamificationStats.currentStreak;
+            ? challenge.targetAmount
+            : _gamificationStats.currentStreak;
 
     await showDialog<void>(
       context: context,
@@ -915,11 +972,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final now = DateTime.now();
     return expenses.any((existing) {
       final sameAmount = existing.amount == candidate.amount;
-      final closeInTime = now.difference(existing.date).abs() <= _duplicateDetectionWindow;
+      final closeInTime =
+          now.difference(existing.date).abs() <= _duplicateDetectionWindow;
       final existingTitle = existing.title.toLowerCase();
       final candidateTitle = candidate.title.toLowerCase();
       final sameSource = existingTitle == candidateTitle ||
-          (existingTitle.contains('[online]') && candidateTitle.contains('[online]'));
+          (existingTitle.contains('[online]') &&
+              candidateTitle.contains('[online]'));
       return sameAmount && closeInTime && sameSource;
     });
   }
@@ -1002,12 +1061,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final currentUser = AuthService.instance.currentUser;
-    final greetingName =
-      widget.displayName?.trim().isNotEmpty == true
+    final greetingName = widget.displayName?.trim().isNotEmpty == true
         ? widget.displayName!.trim()
         : currentUser?.displayName?.trim().isNotEmpty == true
-          ? currentUser!.displayName!.trim()
-          : currentUser?.email.split('@').first ?? 'there';
+            ? currentUser!.displayName!.trim()
+            : currentUser?.email.split('@').first ?? 'there';
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final themeToggleLabel =
         isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode';
@@ -1023,6 +1081,12 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: _toggleTheme,
             icon: Icon(themeToggleIcon),
             tooltip: themeToggleLabel,
+          ),
+          // Fetch latest cloud data (Mongo/Firestore)
+          IconButton(
+            onPressed: _fetchFromCloud,
+            icon: const Icon(Icons.download_rounded),
+            tooltip: 'Fetch latest data',
           ),
           // Sync
           IconButton(
@@ -1121,7 +1185,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                       style: Theme.of(context)
                                           .textTheme
                                           .titleMedium
-                                          ?.copyWith(fontWeight: FontWeight.w700),
+                                          ?.copyWith(
+                                              fontWeight: FontWeight.w700),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
@@ -1166,7 +1231,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             Text(
                               '🎯 Today\'s Savings Challenge',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
                                     fontWeight: FontWeight.w700,
                                   ),
                             ),
@@ -1178,8 +1246,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         ChallengeCard(
                           challenge: _activeChallenges.first,
-                          highlightCompletion:
-                              _recentlyCompletedChallengeId == _activeChallenges.first.id,
+                          highlightCompletion: _recentlyCompletedChallengeId ==
+                              _activeChallenges.first.id,
                           onTap: _openChallengeDashboard,
                         ),
                         const SizedBox(height: 6),
@@ -1191,134 +1259,140 @@ class _HomeScreenState extends State<HomeScreen> {
                       ..._alertMessages.map(
                         (message) => AlertCard(message: message),
                       ),
-                    BudgetCard(
-                      title: 'Monthly Budget',
-                      value: '₹$_monthlyBudget',
-                      icon: Icons.account_balance_wallet_rounded,
-                    ),
-                    BudgetCard(
-                      title: 'Fixed Rent',
-                      value: '₹$_rent',
-                      icon: Icons.home_work_rounded,
-                    ),
-                    BudgetCard(
-                      title: 'Total Spent',
-                      value: '₹$totalSpent',
-                      icon: Icons.payments_rounded,
-                      backgroundColor: colorScheme.surfaceVariant,
-                    ),
-                    BudgetCard(
-                      title: 'Today Spend',
-                      value: '₹$todaySpent',
-                      icon: Icons.today_rounded,
-                      backgroundColor: todaySpent > dailySpendingLimit && dailySpendingLimit > 0
-                          ? colorScheme.errorContainer
-                          : colorScheme.primaryContainer,
-                      valueColor: todaySpent > dailySpendingLimit && dailySpendingLimit > 0
-                          ? colorScheme.onErrorContainer
-                          : colorScheme.onPrimaryContainer,
-                    ),
-                    BudgetCard(
-                      title: 'Left to Spend',
-                      value: '₹$remaining',
-                      icon: Icons.savings_rounded,
-                      valueColor:
-                          remaining < 0 ? colorScheme.error : colorScheme.primary,
-                    ),
-                    BudgetCard(
-                      title: 'Daily Safe Limit',
-                      value: '₹$dailySpendingLimit',
-                      icon: Icons.calendar_today_rounded,
-                      backgroundColor: colorScheme.secondaryContainer,
-                      emphasize: true,
-                    ),
-                    PredictionCard(prediction: _prediction),
-                    Card(
-                      elevation: 1.5,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
+                      BudgetCard(
+                        title: 'Monthly Budget',
+                        value: '₹$_monthlyBudget',
+                        icon: Icons.account_balance_wallet_rounded,
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Spending Analytics',
-                              style:
-                                  Theme.of(context).textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                            ),
-                            const SizedBox(height: 12),
-                            SpendingChart(expenses: expenses),
-                          ],
-                        ),
+                      BudgetCard(
+                        title: 'Fixed Rent',
+                        value: '₹$_rent',
+                        icon: Icons.home_work_rounded,
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Expense List',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    const SizedBox(height: 10),
-                    if (expenses.isEmpty)
+                      BudgetCard(
+                        title: 'Total Spent',
+                        value: '₹$totalSpent',
+                        icon: Icons.payments_rounded,
+                        backgroundColor: colorScheme.surfaceVariant,
+                      ),
+                      BudgetCard(
+                        title: 'Today Spend',
+                        value: '₹$todaySpent',
+                        icon: Icons.today_rounded,
+                        backgroundColor: todaySpent > dailySpendingLimit &&
+                                dailySpendingLimit > 0
+                            ? colorScheme.errorContainer
+                            : colorScheme.primaryContainer,
+                        valueColor: todaySpent > dailySpendingLimit &&
+                                dailySpendingLimit > 0
+                            ? colorScheme.onErrorContainer
+                            : colorScheme.onPrimaryContainer,
+                      ),
+                      BudgetCard(
+                        title: 'Left to Spend',
+                        value: '₹$remaining',
+                        icon: Icons.savings_rounded,
+                        valueColor: remaining < 0
+                            ? colorScheme.error
+                            : colorScheme.primary,
+                      ),
+                      BudgetCard(
+                        title: 'Daily Safe Limit',
+                        value: '₹$dailySpendingLimit',
+                        icon: Icons.calendar_today_rounded,
+                        backgroundColor: colorScheme.secondaryContainer,
+                        emphasize: true,
+                      ),
+                      PredictionCard(prediction: _prediction),
                       Card(
+                        elevation: 1.5,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(18),
                         ),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(
-                            vertical: 24,
-                            horizontal: 16,
-                          ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(Icons.inbox_rounded, size: 36),
-                              SizedBox(height: 8),
-                              Text('No expenses yet. Add your first one!'),
+                              Text(
+                                'Spending Analytics',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                              const SizedBox(height: 12),
+                              SpendingChart(expenses: expenses),
                             ],
                           ),
                         ),
-                      )
-                    else
-                      ...expenses.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final expense = entry.value;
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Expense List',
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                      ),
+                      const SizedBox(height: 10),
+                      if (expenses.isEmpty)
+                        Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                              vertical: 24,
+                              horizontal: 16,
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(Icons.inbox_rounded, size: 36),
+                                SizedBox(height: 8),
+                                Text('No expenses yet. Add your first one!'),
+                              ],
+                            ),
+                          ),
+                        )
+                      else
+                        ...expenses.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final expense = entry.value;
 
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            bottom: index == expenses.length - 1 ? 0 : 10,
-                          ),
-                          child: Dismissible(
-                            key: ValueKey(expense.id ?? index),
-                            direction: DismissDirection.endToStart,
-                            confirmDismiss: (_) async {
-                              await _confirmDeleteExpense(expense);
-                              return false;
-                            },
-                            background: Container(
-                              alignment: Alignment.centerRight,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 20),
-                              decoration: BoxDecoration(
-                                color: colorScheme.error,
-                                borderRadius: BorderRadius.circular(16),
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: index == expenses.length - 1 ? 0 : 10,
+                            ),
+                            child: Dismissible(
+                              key: ValueKey(expense.id ?? index),
+                              direction: DismissDirection.endToStart,
+                              confirmDismiss: (_) async {
+                                await _confirmDeleteExpense(expense);
+                                return false;
+                              },
+                              background: Container(
+                                alignment: Alignment.centerRight,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 20),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.error,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Icon(
+                                  Icons.delete_rounded,
+                                  color: colorScheme.onError,
+                                ),
                               ),
-                              child: Icon(
-                                Icons.delete_rounded,
-                                color: colorScheme.onError,
+                              child: ExpenseCard(
+                                expense: expense,
+                                onDelete: () => _confirmDeleteExpense(expense),
                               ),
                             ),
-                            child: ExpenseCard(
-                              expense: expense,
-                              onDelete: () => _confirmDeleteExpense(expense),
-                            ),
-                          ),
-                        );
-                      }),
+                          );
+                        }),
                     ],
                   ),
           ),
@@ -1562,7 +1636,8 @@ class _SmsAutoTrackBanner extends StatelessWidget {
                   Text(
                     'Money automatically tracked: ₹$totalAmount',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onPrimaryContainer.withOpacity(0.8),
+                          color:
+                              colorScheme.onPrimaryContainer.withOpacity(0.8),
                         ),
                   ),
                 ],

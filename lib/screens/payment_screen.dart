@@ -45,9 +45,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
   void initState() {
     super.initState();
     _upiIdController = TextEditingController(text: widget.receiverUpiId.trim());
-    _receiverNameController = TextEditingController(text: widget.receiverName.trim());
-    _amountController = TextEditingController(text: widget.amount.toStringAsFixed(2));
-    _noteController = TextEditingController(text: widget.transactionNote.trim());
+    _receiverNameController =
+        TextEditingController(text: widget.receiverName.trim());
+    _amountController =
+        TextEditingController(text: widget.amount.toStringAsFixed(2));
+    _noteController =
+        TextEditingController(text: widget.transactionNote.trim());
     _loadUpiApps();
   }
 
@@ -158,7 +161,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
     if (result.status == PaymentStatus.failure) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Unable to open chooser. You can copy UPI ID and pay manually.'),
+          content: Text(
+              'Unable to open chooser. You can copy UPI ID and pay manually.'),
         ),
       );
       await _showPaymentFallbackSheet(validated);
@@ -174,7 +178,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   void _recordPaidExpense() {
-    final amount = double.tryParse(_amountController.text.trim()) ?? widget.amount;
+    final amount =
+        double.tryParse(_amountController.text.trim()) ?? widget.amount;
     final upiId = _upiIdController.text.trim();
     Navigator.of(context).pop(
       Expense(
@@ -362,7 +367,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Future<void> _showPaymentFallbackSheet(UpiPaymentValidationResult validated) async {
+  Future<void> _showPaymentFallbackSheet(
+      UpiPaymentValidationResult validated) async {
     if (!mounted) return;
 
     await showModalBottomSheet<void>(
@@ -410,7 +416,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 await Clipboard.setData(ClipboardData(text: validated.note));
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Payment note copied to clipboard.')),
+                  const SnackBar(
+                      content: Text('Payment note copied to clipboard.')),
                 );
               },
             ),
@@ -432,7 +439,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final amountPreview = double.tryParse(_amountController.text.trim()) ?? widget.amount;
+    final amountPreview =
+        double.tryParse(_amountController.text.trim()) ?? widget.amount;
 
     return Scaffold(
       appBar: AppBar(
@@ -455,7 +463,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 child: LinearProgressIndicator(minHeight: 3),
               ),
             Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18)),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -463,9 +472,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   children: [
                     Text(
                       'Pay ₹${amountPreview.toStringAsFixed(0)}',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -513,7 +523,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _amountController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(
                       labelText: 'Amount',
                       prefixIcon: Icon(Icons.currency_rupee_rounded),
@@ -574,7 +585,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
               const Card(
                 child: ListTile(
                   title: Text('No UPI apps detected'),
-                  subtitle: Text('Try the chooser above, or pay manually using UPI ID.'),
+                  subtitle: Text(
+                      'Try the chooser above, or pay manually using UPI ID.'),
                   enabled: false,
                 ),
               )

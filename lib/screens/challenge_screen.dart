@@ -69,10 +69,11 @@ class ChallengeScreen extends StatelessWidget {
                         ),
                         child: Text(
                           '${stats.totalPoints} pts',
-                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                color: colorScheme.onPrimaryContainer,
-                                fontWeight: FontWeight.w700,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.labelMedium?.copyWith(
+                                    color: colorScheme.onPrimaryContainer,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                         ),
                       ),
                     ],
@@ -164,7 +165,8 @@ class ChallengeScreen extends StatelessWidget {
                       children: stats.badgesUnlocked
                           .map(
                             (badge) => Chip(
-                              avatar: const Icon(Icons.workspace_premium_rounded),
+                              avatar:
+                                  const Icon(Icons.workspace_premium_rounded),
                               label: Text(badge),
                               backgroundColor: colorScheme.secondaryContainer,
                             ),

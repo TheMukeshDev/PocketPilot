@@ -39,7 +39,8 @@ class FakeExpenseStore implements ExpenseStore {
 }
 
 void main() {
-  testWidgets('renders budget tracker home screen', (WidgetTester tester) async {
+  testWidgets('renders budget tracker home screen',
+      (WidgetTester tester) async {
     await tester.pumpWidget(
       MyApp(
         home: HomeScreen(expenseStore: FakeExpenseStore()),

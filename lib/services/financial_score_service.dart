@@ -36,16 +36,22 @@ class FinancialScoreService {
     required DateTime cycleEndExclusive,
   }) {
     final availableBudget = (monthlyBudget - rent).clamp(1, 1000000000);
-    final remainingBudget = (availableBudget - totalSpent).clamp(-1000000000, availableBudget);
-    final cycleLengthDays = cycleEndExclusive.difference(cycleStart).inDays.clamp(1, 366);
+    final remainingBudget =
+        (availableBudget - totalSpent).clamp(-1000000000, availableBudget);
+    final cycleLengthDays =
+        cycleEndExclusive.difference(cycleStart).inDays.clamp(1, 366);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final daysElapsed = (today.difference(cycleStart).inDays + 1).clamp(1, cycleLengthDays);
-    final daysRemaining = (cycleEndExclusive.difference(today).inDays).clamp(0, cycleLengthDays);
+    final daysElapsed =
+        (today.difference(cycleStart).inDays + 1).clamp(1, cycleLengthDays);
+    final daysRemaining =
+        (cycleEndExclusive.difference(today).inDays).clamp(0, cycleLengthDays);
 
     final savingsRatio = (remainingBudget / availableBudget).clamp(0.0, 1.0);
-    final expectedSpendByNow = availableBudget * (daysElapsed / cycleLengthDays);
-    final paceRatio = expectedSpendByNow <= 0 ? 0.0 : totalSpent / expectedSpendByNow;
+    final expectedSpendByNow =
+        availableBudget * (daysElapsed / cycleLengthDays);
+    final paceRatio =
+        expectedSpendByNow <= 0 ? 0.0 : totalSpent / expectedSpendByNow;
 
     final budgetDisciplineScore = _budgetDisciplineScore(
       paceRatio: paceRatio,
@@ -59,20 +65,21 @@ class FinancialScoreService {
             .clamp(0.0, 20.0)
             .round();
 
-    final spendingDistributionScore = _spendingDistributionScore(expenses, totalSpent);
+    final spendingDistributionScore =
+        _spendingDistributionScore(expenses, totalSpent);
 
-    final expectedRemainingRatio = (daysRemaining / cycleLengthDays).clamp(0.0, 1.0);
+    final expectedRemainingRatio =
+        (daysRemaining / cycleLengthDays).clamp(0.0, 1.0);
     final savingRateScore = _savingRateScore(
       savingsRatio: savingsRatio,
       expectedRemainingRatio: expectedRemainingRatio,
     );
 
-    final totalScore = (
-      budgetDisciplineScore +
-      dailyDisciplineScore +
-      spendingDistributionScore +
-      savingRateScore
-    ).clamp(0, 100);
+    final totalScore = (budgetDisciplineScore +
+            dailyDisciplineScore +
+            spendingDistributionScore +
+            savingRateScore)
+        .clamp(0, 100);
 
     final status = _statusLabel(totalScore);
     final insight = _insightText(
@@ -139,17 +146,20 @@ class FinancialScoreService {
     return (20 - (delta * 24)).clamp(0.0, 20.0).round();
   }
 
-  static int _spendingDistributionScore(List<Expense> expenses, int totalSpent) {
+  static int _spendingDistributionScore(
+      List<Expense> expenses, int totalSpent) {
     if (totalSpent <= 0 || expenses.isEmpty) {
       return 20;
     }
 
     final totals = <String, int>{};
     for (final expense in expenses) {
-      totals[expense.category] = (totals[expense.category] ?? 0) + expense.amount;
+      totals[expense.category] =
+          (totals[expense.category] ?? 0) + expense.amount;
     }
 
-    final highestCategorySpend = totals.values.fold<int>(0, (a, b) => a > b ? a : b);
+    final highestCategorySpend =
+        totals.values.fold<int>(0, (a, b) => a > b ? a : b);
     final highestShare = highestCategorySpend / totalSpent;
 
     if (highestShare <= 0.35) {
@@ -207,7 +217,8 @@ class FinancialScoreService {
     }
 
     if (savingRateScore < 8) {
-      final remaining = (availableBudget - totalSpent).clamp(0, availableBudget);
+      final remaining =
+          (availableBudget - totalSpent).clamp(0, availableBudget);
       return 'Your score dropped because only ₹$remaining is left in the current budget cycle.';
     }
 

@@ -71,7 +71,8 @@ class PaymentAppCard extends StatelessWidget {
                   ),
                 )
               else
-                Icon(Icons.arrow_forward_ios_rounded, size: 18, color: colorScheme.primary),
+                Icon(Icons.arrow_forward_ios_rounded,
+                    size: 18, color: colorScheme.primary),
             ],
           ),
         ),

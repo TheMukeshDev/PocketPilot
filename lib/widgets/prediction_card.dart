@@ -21,7 +21,8 @@ class PredictionCard extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
       ),
-      color: warning ? colorScheme.errorContainer : colorScheme.tertiaryContainer,
+      color:
+          warning ? colorScheme.errorContainer : colorScheme.tertiaryContainer,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -49,6 +50,14 @@ class PredictionCard extends StatelessWidget {
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: onContainerColor,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Based on cycle day ${prediction.currentDay} of ${prediction.daysInMonth}',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: onContainerColor,
+                    fontWeight: FontWeight.w500,
                   ),
             ),
             const SizedBox(height: 8),

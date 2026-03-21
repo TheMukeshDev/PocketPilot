@@ -19,11 +19,28 @@ class ChallengeService {
     required int availableBudget,
     required String userId,
     DateTime? now,
+    DateTime? cycleStart,
+    DateTime? cycleEnd,
   }) async {
     final current = now ?? DateTime.now();
     final prefs = await SharedPreferences.getInstance();
 
-    final previousStats = _loadStats(prefs, userId);
+    final cycleKey = cycleStart != null && cycleEnd != null
+        ? '${cycleStart.toIso8601String()}_${cycleEnd.toIso8601String()}'
+        : '${current.year}-${current.month}';
+    final previousCycleKey = prefs.getString(_cycleKey(userId));
+
+    final previousStats = previousCycleKey == cycleKey
+        ? _loadStats(prefs, userId)
+        : GamificationStats.empty;
+
+    if (previousCycleKey != cycleKey) {
+      await prefs.setString(
+          _statsKey(userId), jsonEncode(GamificationStats.empty.toMap()));
+      await prefs.setStringList(_completedKey(userId), <String>[]);
+      await prefs.setString(_cycleKey(userId), cycleKey);
+    }
+
     final completedIds = _loadCompletedChallengeIds(prefs, userId);
 
     await _resetOldChallengeRecords(
@@ -35,21 +52,29 @@ class ChallengeService {
 
     final dayStart = DateTime(current.year, current.month, current.day);
     final dayEnd = dayStart.add(const Duration(days: 1));
-    final weekStart = dayStart.subtract(Duration(days: current.weekday - 1));
+    final yesterdayStart = dayStart.subtract(const Duration(days: 1));
+    final yesterdayEnd = dayStart;
+    final weekStart =
+        cycleStart ?? dayStart.subtract(Duration(days: current.weekday - 1));
     final weekEnd = weekStart.add(const Duration(days: 7));
 
     final todaySpent = _sumAmount(
-      expenses.where((e) => !e.date.isBefore(dayStart) && e.date.isBefore(dayEnd)),
+      expenses
+          .where((e) => !e.date.isBefore(dayStart) && e.date.isBefore(dayEnd)),
+    );
+    final yesterdaySpent = _sumAmount(
+      expenses.where((e) =>
+          !e.date.isBefore(yesterdayStart) && e.date.isBefore(yesterdayEnd)),
     );
     final weekSpent = _sumAmount(
-      expenses.where((e) => !e.date.isBefore(weekStart) && e.date.isBefore(weekEnd)),
+      expenses.where(
+          (e) => !e.date.isBefore(weekStart) && e.date.isBefore(weekEnd)),
     );
 
     final dailyCap = dailyLimit <= 0 ? 80 : dailyLimit;
     const weeklySaveTarget = 300;
     final weeklyBudgetCap = dailyCap * 7;
-    final weeklySaved =
-        (weeklyBudgetCap - weekSpent).clamp(0, 1000000).toInt();
+    final weeklySaved = (weeklyBudgetCap - weekSpent).clamp(0, 1000000).toInt();
 
     final fiveDayStreak = _currentUnderLimitStreak(
       expenses: expenses,
@@ -63,6 +88,9 @@ class ChallengeService {
     );
     const streakTarget = 5;
 
+    final yesterdayDailyId = 'daily_${_dateKey(yesterdayStart)}';
+    final wasYesterdayUnderLimit = yesterdaySpent <= dailyCap;
+
     final dailyChallenge = Challenge(
       id: 'daily_${_dateKey(current)}',
       title: 'Stay under ₹$dailyCap today',
@@ -71,9 +99,27 @@ class ChallengeService {
       targetAmount: dailyCap,
       rewardPoints: 20,
       progress: (1 - (todaySpent / dailyCap)).clamp(0.0, 1.0),
-      isCompleted: todaySpent <= dailyCap,
+      isCompleted: false,
       challengeType: ChallengeType.daily,
     );
+
+    ChallengeCompletion? yesterdayCompletion;
+    if (wasYesterdayUnderLimit && !completedIds.contains(yesterdayDailyId)) {
+      yesterdayCompletion = ChallengeCompletion(
+        challenge: Challenge(
+          id: yesterdayDailyId,
+          title: 'Yesterday under ₹$dailyCap',
+          description: 'Yesterday spending stayed under daily budget.',
+          targetAmount: dailyCap,
+          rewardPoints: 20,
+          progress: 1.0,
+          isCompleted: true,
+          challengeType: ChallengeType.daily,
+        ),
+        pointsEarned: 20,
+        savedAmount: (dailyCap - yesterdaySpent).clamp(0, dailyCap),
+      );
+    }
 
     final weeklyChallenge = Challenge(
       id: 'weekly_${_weekKey(current)}',
@@ -89,7 +135,8 @@ class ChallengeService {
     final streakChallenge = Challenge(
       id: 'streak_${_dateKey(current)}',
       title: 'Stay under limit for 5 days',
-      description: 'Maintain spending under daily limit for 5 consecutive days.',
+      description:
+          'Maintain spending under daily limit for 5 consecutive days.',
       targetAmount: streakTarget,
       rewardPoints: 60,
       progress: (fiveDayStreak / streakTarget).clamp(0.0, 1.0),
@@ -122,6 +169,13 @@ class ChallengeService {
       );
     }
 
+    if (yesterdayCompletion != null) {
+      if (!freshCompletedIds.contains(yesterdayDailyId)) {
+        freshCompletedIds.add(yesterdayDailyId);
+        completions.add(yesterdayCompletion);
+      }
+    }
+
     final nextPoints = previousStats.totalPoints +
         completions.fold<int>(0, (sum, item) => sum + item.pointsEarned);
 
@@ -140,7 +194,8 @@ class ChallengeService {
       _statsKey(userId),
       jsonEncode(finalStats.toMap()),
     );
-    await prefs.setStringList(_completedKey(userId), freshCompletedIds.toList());
+    await prefs.setStringList(
+        _completedKey(userId), freshCompletedIds.toList());
 
     return ChallengeEvaluation(
       challenges: generated,
@@ -155,8 +210,10 @@ class ChallengeService {
     final ids = _loadCompletedChallengeIds(prefs, userId);
     final todaySuffix = _dateKey(DateTime.now());
 
-    ids.removeWhere((id) => id.startsWith('daily_') && !id.endsWith(todaySuffix));
-    ids.removeWhere((id) => id.startsWith('streak_') && !id.endsWith(todaySuffix));
+    ids.removeWhere(
+        (id) => id.startsWith('daily_') && !id.endsWith(todaySuffix));
+    ids.removeWhere(
+        (id) => id.startsWith('streak_') && !id.endsWith(todaySuffix));
 
     await prefs.setStringList(_completedKey(userId), ids.toList());
   }
@@ -175,7 +232,8 @@ class ChallengeService {
     }
   }
 
-  Set<String> _loadCompletedChallengeIds(SharedPreferences prefs, String userId) {
+  Set<String> _loadCompletedChallengeIds(
+      SharedPreferences prefs, String userId) {
     return (prefs.getStringList(_completedKey(userId)) ?? const <String>[])
         .toSet();
   }
@@ -223,8 +281,8 @@ class ChallengeService {
 
     var streak = 0;
     for (var i = 0; i < maxDaysToCheck; i++) {
-      final day = DateTime(now.year, now.month, now.day)
-          .subtract(Duration(days: i));
+      final day =
+          DateTime(now.year, now.month, now.day).subtract(Duration(days: i));
       final dayKey = _dateKey(day);
       if (!byDay.containsKey(dayKey)) {
         break;
@@ -262,8 +320,8 @@ class ChallengeService {
     for (final key in sortedDays) {
       final currentDay = DateTime.parse(key);
       final withinLimit = (byDay[key] ?? 0) <= dailyLimit;
-      final isConsecutive = previousDay != null &&
-          currentDay.difference(previousDay).inDays == 1;
+      final isConsecutive =
+          previousDay != null && currentDay.difference(previousDay).inDays == 1;
 
       if (!withinLimit) {
         current = 0;
@@ -330,6 +388,7 @@ class ChallengeService {
 
   String _statsKey(String userId) => '$_statsKeyPrefix$userId';
   String _completedKey(String userId) => '$_completedKeyPrefix$userId';
+  String _cycleKey(String userId) => '$_statsKeyPrefix${userId}_cycle';
 
   String _dateKey(DateTime date) {
     return '${date.year.toString().padLeft(4, '0')}'
@@ -338,8 +397,7 @@ class ChallengeService {
   }
 
   String _weekKey(DateTime date) {
-    final dayOfYear =
-        date.difference(DateTime(date.year, 1, 1)).inDays + 1;
+    final dayOfYear = date.difference(DateTime(date.year, 1, 1)).inDays + 1;
     final week = ((dayOfYear - date.weekday + 10) / 7).floor();
     return '${date.year}-W${week.toString().padLeft(2, '0')}';
   }

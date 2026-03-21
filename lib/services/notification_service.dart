@@ -121,7 +121,8 @@ class NotificationService {
       return;
     }
 
-    final suggestion = _dailySuggestions[_random.nextInt(_dailySuggestions.length)];
+    final suggestion =
+        _dailySuggestions[_random.nextInt(_dailySuggestions.length)];
 
     try {
       await _notifications.show(

@@ -84,7 +84,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       if (!scanned.hasAmount && !scanned.hasTitle) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Could not read receipt clearly. Please enter details manually.'),
+            content: Text(
+                'Could not read receipt clearly. Please enter details manually.'),
           ),
         );
         return;
@@ -95,7 +96,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Receipt scan failed. You can still add expense manually.'),
+          content:
+              Text('Receipt scan failed. You can still add expense manually.'),
         ),
       );
     } finally {
@@ -127,7 +129,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               ListTile(
                 leading: const Icon(Icons.photo_library_rounded),
                 title: const Text('Pick from Gallery'),
-                onTap: () => Navigator.of(sheetContext).pop(ImageSource.gallery),
+                onTap: () =>
+                    Navigator.of(sheetContext).pop(ImageSource.gallery),
               ),
               const SizedBox(height: 4),
             ],
@@ -190,13 +193,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           'Enhanced Detection',
                           style: TextStyle(fontSize: 11),
                         ),
-                        avatar:
-                            const Icon(Icons.auto_awesome, size: 14),
+                        avatar: const Icon(Icons.auto_awesome, size: 14),
                         padding: EdgeInsets.zero,
                         visualDensity: VisualDensity.compact,
-                        backgroundColor: Theme.of(ctx)
-                            .colorScheme
-                            .tertiaryContainer,
+                        backgroundColor:
+                            Theme.of(ctx).colorScheme.tertiaryContainer,
                       ),
                   ],
                 ),
@@ -257,9 +258,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Theme.of(ctx)
-                              .colorScheme
-                              .surfaceVariant,
+                          color: Theme.of(ctx).colorScheme.surfaceVariant,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: SelectableText(
@@ -281,8 +280,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   icon: const Icon(Icons.check_rounded),
                   label: const Text('Apply to Form'),
                   style: FilledButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 14),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -292,8 +290,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 OutlinedButton(
                   onPressed: () => Navigator.pop(ctx),
                   style: OutlinedButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -387,7 +384,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 MediaQuery.of(context).viewInsets.bottom + 16,
               ),
               child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight - 32),
+                constraints:
+                    BoxConstraints(minHeight: constraints.maxHeight - 32),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -424,8 +422,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const Text(
                                       'Auto-fill from Receipt',
@@ -457,9 +454,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                   : FilledButton.tonal(
                                       onPressed: () async {
                                         final scanned =
-                                            await Navigator.of(context).push<Expense>(
+                                            await Navigator.of(context)
+                                                .push<Expense>(
                                           MaterialPageRoute(
-                                            builder: (_) => const ScanReceiptScreen(),
+                                            builder: (_) =>
+                                                const ScanReceiptScreen(),
                                           ),
                                         );
                                         if (scanned != null && mounted) {
@@ -469,19 +468,21 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                                   scanned.amount.toString();
                                             }
                                             if (scanned.title.isNotEmpty) {
-                                              _titleController.text = scanned.title;
+                                              _titleController.text =
+                                                  scanned.title;
                                             }
-                                            if (_categories.contains(scanned.category)) {
+                                            if (_categories
+                                                .contains(scanned.category)) {
                                               _category = scanned.category;
                                             }
                                             _selectedDate = scanned.date;
-                                            _dateController.text = _formatDate(scanned.date);
+                                            _dateController.text =
+                                                _formatDate(scanned.date);
                                           });
                                         }
                                       },
                                       style: FilledButton.styleFrom(
-                                        padding:
-                                            const EdgeInsets.symmetric(
+                                        padding: const EdgeInsets.symmetric(
                                           horizontal: 14,
                                           vertical: 10,
                                         ),
@@ -532,7 +533,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                   icon: Icons.currency_rupee_rounded,
                                 ),
                                 validator: (value) {
-                                  final amount = int.tryParse(value?.trim() ?? '');
+                                  final amount =
+                                      int.tryParse(value?.trim() ?? '');
                                   if (amount == null || amount <= 0) {
                                     return 'Enter a valid amount';
                                   }
@@ -545,8 +547,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                 borderRadius: BorderRadius.circular(14),
                                 isExpanded: true,
                                 items: _categories.map((item) {
-                                  final emoji =
-                                      ReceiptScannerService.categoryEmoji[item] ?? '';
+                                  final emoji = ReceiptScannerService
+                                          .categoryEmoji[item] ??
+                                      '';
                                   return DropdownMenuItem<String>(
                                     value: item,
                                     child: Text('$emoji  $item'),
@@ -630,8 +633,8 @@ class _DetectedField extends StatelessWidget {
         color: found
             ? (highlight
                 ? cs.primaryContainer.withOpacity(0.55)
-            : cs.surfaceVariant)
-          : cs.surfaceVariant,
+                : cs.surfaceVariant)
+            : cs.surfaceVariant,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: found && highlight
@@ -658,8 +661,7 @@ class _DetectedField extends StatelessWidget {
                 Text(
                   value,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight:
-                            found ? FontWeight.w600 : FontWeight.normal,
+                        fontWeight: found ? FontWeight.w600 : FontWeight.normal,
                         color: found ? cs.onSurface : cs.outline,
                         fontSize: highlight && found ? 16 : null,
                       ),
@@ -668,9 +670,7 @@ class _DetectedField extends StatelessWidget {
             ),
           ),
           Icon(
-            found
-                ? Icons.check_circle_rounded
-                : Icons.help_outline_rounded,
+            found ? Icons.check_circle_rounded : Icons.help_outline_rounded,
             size: 16,
             color: found ? cs.primary : cs.outline,
           ),

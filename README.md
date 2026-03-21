@@ -267,9 +267,7 @@ MIT License
 
 ---
 
-## Screenshots
-
-> Add real app screenshots in the `screenshots/` folder and keep names in sync.
+## Demo Screenshots
 
 ![Login Screen](screenshots/login.jpeg)
 ![Home Screen](screenshots/home.jpeg)

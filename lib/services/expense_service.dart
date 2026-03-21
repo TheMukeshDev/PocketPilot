@@ -4,7 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/expense.dart';
 import '../models/user.dart';
+import 'app_config.dart';
 import 'database_service.dart';
+import 'mongo_expense_repository.dart';
 
 class ExpenseService {
   ExpenseService._();
@@ -83,9 +85,18 @@ class ExpenseService {
     }
   }
 
+  bool get _useMongo =>
+      AppConfig.mongoUri != null && AppConfig.mongoUri!.trim().isNotEmpty;
+
   Future<void> _trySyncSingleExpense(Expense expense, AppUser user) async {
     final localId = expense.id;
     if (localId == null) return;
+
+    if (_useMongo) {
+      await _trySyncSingleExpenseToMongo(expense, user);
+      await _databaseService.markExpenseSynced(localId);
+      return;
+    }
 
     try {
       final docRef = _firestore
@@ -113,7 +124,28 @@ class ExpenseService {
     }
   }
 
+  Future<void> _trySyncSingleExpenseToMongo(
+      Expense expense, AppUser user) async {
+    try {
+      await MongoExpenseRepository.instance
+          .upsertExpense(expense.copyWith(userId: user.id, synced: true));
+    } catch (_) {
+      // Keep local-first behavior when Mongo is unavailable.
+    }
+  }
+
   Future<void> _pullCloudExpenses(AppUser user) async {
+    if (_useMongo) {
+      try {
+        final cloudExpenses =
+            await MongoExpenseRepository.instance.fetchUserExpenses(user.id);
+        await _databaseService.upsertCloudExpenses(cloudExpenses, user.id);
+        return;
+      } catch (_) {
+        // Continue to fallback to Firestore if Mongo fails.
+      }
+    }
+
     try {
       final snapshot = await _firestore
           .collection('users')

@@ -81,8 +81,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         return;
       }
 
-      final message = AuthService.instance
-          .userMessageFor(error, isRegistration: true);
+      final message =
+          AuthService.instance.userMessageFor(error, isRegistration: true);
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(message)));
     } finally {
@@ -243,7 +243,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
                               )
                             : const Text('Register'),
                       ),

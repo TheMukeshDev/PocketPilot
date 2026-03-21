@@ -86,7 +86,8 @@ class AuthService {
       );
       final firebaseUser = credential.user;
       if (firebaseUser == null) {
-        throw const _AuthFailedException('Registration failed. Please try again.');
+        throw const _AuthFailedException(
+            'Registration failed. Please try again.');
       }
 
       final trimmedName = fullName.trim();
@@ -236,7 +237,7 @@ class AuthService {
 
     try {
       final googleConfig = await _getGoogleSignInConfig();
-        final configuredWebClientId =
+      final configuredWebClientId =
           AppConfig.googleWebClientId ?? googleConfig.defaultWebClientId;
 
       if (!googleConfig.isConfigured && configuredWebClientId == null) {
@@ -247,10 +248,10 @@ class AuthService {
         );
       }
 
-      final googleSignIn = configuredWebClientId == null ||
-              configuredWebClientId.isEmpty
-          ? GoogleSignIn()
-          : GoogleSignIn(serverClientId: configuredWebClientId);
+      final googleSignIn =
+          configuredWebClientId == null || configuredWebClientId.isEmpty
+              ? GoogleSignIn()
+              : GoogleSignIn(serverClientId: configuredWebClientId);
       _activeGoogleSignIn = googleSignIn;
 
       final account = await googleSignIn.signIn();
@@ -300,7 +301,9 @@ class AuthService {
         'auth',
         'Google sign-in failed with PlatformException.',
         error: error,
-        stackTrace: error.stacktrace == null ? null : StackTrace.fromString(error.stacktrace!),
+        stackTrace: error.stacktrace == null
+            ? null
+            : StackTrace.fromString(error.stacktrace!),
         context: const {'provider': 'google'},
       );
       throw mapped;
@@ -463,7 +466,8 @@ class AuthService {
   Future<AppUser> _appUserFromFirebaseUser(User user) async {
     final email = user.email;
     if (email == null || email.isEmpty) {
-      throw const _AuthFailedException('This account does not have an email address.');
+      throw const _AuthFailedException(
+          'This account does not have an email address.');
     }
 
     return AppUser(

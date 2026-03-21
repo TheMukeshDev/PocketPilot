@@ -12,16 +12,21 @@ class MonthlyReportScreen extends StatelessWidget {
     required this.expenses,
     required this.monthlyBudget,
     required this.rent,
+    this.cycleStart,
+    this.cycleEnd,
   });
 
   final List<Expense> expenses;
   final int monthlyBudget;
   final int rent;
+  final DateTime? cycleStart;
+  final DateTime? cycleEnd;
 
   List<Expense> get currentMonthExpenses {
     final now = DateTime.now();
     return expenses
-        .where((expense) => expense.date.year == now.year && expense.date.month == now.month)
+        .where((expense) =>
+            expense.date.year == now.year && expense.date.month == now.month)
         .toList();
   }
 
@@ -53,7 +58,8 @@ class MonthlyReportScreen extends StatelessWidget {
       for (final category in kExpenseCategories) category: 0.0,
     };
     for (final expense in currentMonthExpenses) {
-      final key = totals.containsKey(expense.category) ? expense.category : 'Other';
+      final key =
+          totals.containsKey(expense.category) ? expense.category : 'Other';
       totals[key] = totals[key]! + expense.amount;
     }
     return totals;
@@ -71,11 +77,12 @@ class MonthlyReportScreen extends StatelessWidget {
     final prediction = PredictionService.analyze(
       totalSpent: totalSpent,
       availableBudget: availableBudget,
+      cycleStart: cycleStart,
+      cycleEnd: cycleEnd,
     );
 
-    final filteredCategoryEntries = categoryTotals.entries
-        .where((entry) => entry.value > 0)
-        .toList();
+    final filteredCategoryEntries =
+        categoryTotals.entries.where((entry) => entry.value > 0).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -86,9 +93,10 @@ class MonthlyReportScreen extends StatelessWidget {
           builder: (context, constraints) {
             final compact = constraints.maxWidth < 380;
             final barWidth = compact ? 16.0 : 22.0;
-            final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                );
+            final titleStyle =
+                Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    );
 
             return ListView(
               padding: const EdgeInsets.all(16),
@@ -104,7 +112,8 @@ class MonthlyReportScreen extends StatelessWidget {
                 BudgetCard(
                   title: 'Remaining',
                   value: '₹$remaining',
-                  valueColor: remaining < 0 ? colorScheme.error : colorScheme.primary,
+                  valueColor:
+                      remaining < 0 ? colorScheme.error : colorScheme.primary,
                 ),
                 const SizedBox(height: 8),
                 Card(
@@ -122,26 +131,32 @@ class MonthlyReportScreen extends StatelessWidget {
                         SizedBox(
                           height: compact ? 220 : 260,
                           child: filteredCategoryEntries.isEmpty
-                              ? const Center(child: Text('No current-month data to display.'))
+                              ? const Center(
+                                  child:
+                                      Text('No current-month data to display.'))
                               : BarChart(
                                   BarChartData(
                                     alignment: BarChartAlignment.spaceAround,
                                     maxY: (filteredCategoryEntries
                                                 .map((entry) => entry.value)
-                                                .reduce((a, b) => a > b ? a : b) *
+                                                .reduce(
+                                                    (a, b) => a > b ? a : b) *
                                             1.2)
                                         .clamp(100, double.infinity),
                                     gridData: const FlGridData(show: false),
                                     borderData: FlBorderData(show: false),
                                     titlesData: FlTitlesData(
                                       topTitles: const AxisTitles(
-                                        sideTitles: SideTitles(showTitles: false),
+                                        sideTitles:
+                                            SideTitles(showTitles: false),
                                       ),
                                       rightTitles: const AxisTitles(
-                                        sideTitles: SideTitles(showTitles: false),
+                                        sideTitles:
+                                            SideTitles(showTitles: false),
                                       ),
                                       leftTitles: const AxisTitles(
-                                        sideTitles: SideTitles(showTitles: false),
+                                        sideTitles:
+                                            SideTitles(showTitles: false),
                                       ),
                                       bottomTitles: AxisTitles(
                                         sideTitles: SideTitles(
@@ -150,25 +165,35 @@ class MonthlyReportScreen extends StatelessWidget {
                                           getTitlesWidget: (value, meta) {
                                             final index = value.toInt();
                                             if (index < 0 ||
-                                                index >= filteredCategoryEntries.length) {
+                                                index >=
+                                                    filteredCategoryEntries
+                                                        .length) {
                                               return const SizedBox.shrink();
                                             }
-                                            final label = filteredCategoryEntries[index].key;
+                                            final label =
+                                                filteredCategoryEntries[index]
+                                                    .key;
                                             final short = label.length > 8
                                                 ? '${label.substring(0, 8)}…'
                                                 : label;
                                             return Padding(
-                                              padding: const EdgeInsets.only(top: 8),
+                                              padding:
+                                                  const EdgeInsets.only(top: 8),
                                               child: Text(
                                                 short,
-                                                style: Theme.of(context).textTheme.bodySmall,
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodySmall,
                                               ),
                                             );
                                           },
                                         ),
                                       ),
                                     ),
-                                    barGroups: filteredCategoryEntries.asMap().entries.map((entry) {
+                                    barGroups: filteredCategoryEntries
+                                        .asMap()
+                                        .entries
+                                        .map((entry) {
                                       final index = entry.key;
                                       final category = entry.value.key;
                                       final amount = entry.value.value;
@@ -178,8 +203,10 @@ class MonthlyReportScreen extends StatelessWidget {
                                           BarChartRodData(
                                             toY: amount,
                                             width: barWidth,
-                                            color: categoryColor(context, category),
-                                            borderRadius: BorderRadius.circular(8),
+                                            color: categoryColor(
+                                                context, category),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
                                           ),
                                         ],
                                       );
@@ -215,7 +242,8 @@ class MonthlyReportScreen extends StatelessWidget {
                               subtitle: Text(expense.category),
                               trailing: Text(
                                 '₹${expense.amount}',
-                                style: const TextStyle(fontWeight: FontWeight.w700),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w700),
                               ),
                             ),
                           ),
@@ -237,7 +265,8 @@ class MonthlyReportScreen extends StatelessWidget {
                         Text('Monthly Summary', style: titleStyle),
                         const SizedBox(height: 10),
                         Text('Daily limit: ₹$dailyLimit'),
-                        Text('Current-month entries: ${currentMonthExpenses.length}'),
+                        Text(
+                            'Current-month entries: ${currentMonthExpenses.length}'),
                         Text('Budget used: '
                             '${availableBudget == 0 ? 0 : ((totalSpent / availableBudget) * 100).toStringAsFixed(1)}%'),
                         Text(prediction.message),

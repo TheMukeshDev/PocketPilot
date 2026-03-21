@@ -3,8 +3,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/auth_service.dart';
 import '../services/budget_cycle_preferences.dart';
+import '../services/date_cycle_service.dart';
 import '../services/sms_tracking_preferences.dart';
 import '../services/theme_service.dart';
+import '../widgets/smart_date_selector.dart';
 import 'login_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -49,7 +51,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   ];
   String _selectedLang = 'en';
 
-
   @override
   void initState() {
     super.initState();
@@ -68,7 +69,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _onThemeChanged() {
-    if (mounted) setState(() => _themeMode = ThemeService.instance.themeMode.value);
+    if (mounted)
+      setState(() => _themeMode = ThemeService.instance.themeMode.value);
   }
 
   Future<void> _loadLangPref() async {
@@ -159,42 +161,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _rentPreferenceKey(String userId) => 'monthly_rent_$userId';
 
   Future<void> _openBudgetCycleDialog() async {
-    int selectedDay = _budgetCycleStartDay;
-    final updated = await showDialog<int>(
+    final dateService = DateCycleService.instance;
+    final currentStartDay = _budgetCycleStartDay;
+    final now = DateTime.now();
+    final currentStartDate = DateTime(now.year, now.month, currentStartDay);
+
+    DateTime selectedDate = currentStartDate;
+
+    final updated = await showDialog<DateTime>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) => AlertDialog(
           title: const Text('Budget Cycle Start Date'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Choose which day of each month your budget cycle should start.',
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<int>(
-                value: selectedDay,
-                items: List.generate(
-                  28,
-                  (index) => DropdownMenuItem<int>(
-                    value: index + 1,
-                    child: Text('Day ${index + 1}'),
-                  ),
-                ),
-                onChanged: (value) {
-                  if (value == null) {
-                    return;
-                  }
-                  setModalState(() {
-                    selectedDay = value;
-                  });
-                },
-                decoration: const InputDecoration(
-                  labelText: 'Cycle start day',
-                ),
-              ),
-            ],
+          contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+          actionsPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 380),
+            child: SmartDateSelector(
+              selectedDate: selectedDate,
+              onDateSelected: (date) {
+                setModalState(() {
+                  selectedDate = date;
+                });
+              },
+              label: 'Choose which date your budget cycle should start',
+            ),
           ),
           actions: [
             TextButton(
@@ -202,7 +194,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(selectedDay),
+              onPressed: () => Navigator.of(ctx).pop(selectedDate),
               child: const Text('Save'),
             ),
           ],
@@ -210,21 +202,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
 
-    if (updated == null || updated == _budgetCycleStartDay) {
-      return;
-    }
+    if (updated == null) return;
 
+    final startDay = updated.day;
     final userId = AuthService.instance.currentUser?.id ?? 'guest';
-    await BudgetCyclePreferences.saveForUser(userId, updated);
-    if (!mounted) {
-      return;
-    }
+    await BudgetCyclePreferences.saveForUser(userId, startDay);
+    if (!mounted) return;
     setState(() {
-      _budgetCycleStartDay = updated;
+      _budgetCycleStartDay = startDay;
     });
-    widget.onBudgetCycleStartDayUpdated(updated);
+    widget.onBudgetCycleStartDayUpdated(startDay);
+
+    final cycleStart = dateService.getCycleStart(updated);
+    final cycleEnd = dateService.getCycleEnd(updated);
+    final cycleInfo =
+        'Cycle: ${dateService.formatDate(cycleStart)} → ${dateService.formatDate(cycleEnd)}';
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Budget cycle now starts on day $updated each month.')),
+      SnackBar(
+          content:
+              Text('Budget cycle now starts on day $startDay. $cycleInfo')),
     );
   }
 
@@ -446,9 +443,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   radius: 30,
                   backgroundColor: colorScheme.primary,
                   child: Text(
-                    displayName.isNotEmpty
-                        ? displayName[0].toUpperCase()
-                        : 'P',
+                    displayName.isNotEmpty ? displayName[0].toUpperCase() : 'P',
                     style: textTheme.headlineSmall?.copyWith(
                       color: colorScheme.onPrimary,
                       fontWeight: FontWeight.bold,

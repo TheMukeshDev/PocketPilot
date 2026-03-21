@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
@@ -114,6 +115,18 @@ class MyApp extends StatelessWidget {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: ThemeService.instance.themeMode,
       builder: (context, themeMode, _) {
+        final isDark = themeMode == ThemeMode.dark;
+
+        SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+          statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+          systemNavigationBarColor:
+              isDark ? const Color(0xFF020617) : const Color(0xFFF1F5F9),
+          systemNavigationBarIconBrightness:
+              isDark ? Brightness.light : Brightness.dark,
+        ));
+
         return MaterialApp(
           title: 'PocketPilot',
           debugShowCheckedModeBanner: false,
@@ -141,16 +154,14 @@ ThemeData _buildAppTheme(Brightness brightness) {
     tertiary: isDark ? const Color(0xFFF59E0B) : const Color(0xFFD97706),
     error: const Color(0xFFDC2626),
     surface: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-    surfaceVariant:
-        isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+    surfaceVariant: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
     primaryContainer:
         isDark ? const Color(0xFF134E4A) : const Color(0xFFCCFBF1),
     secondaryContainer:
         isDark ? const Color(0xFF0C4A6E) : const Color(0xFFE0F2FE),
     tertiaryContainer:
         isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7),
-    errorContainer:
-        isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2),
+    errorContainer: isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2),
   );
 
   return ThemeData(
@@ -197,7 +208,8 @@ ThemeData _buildAppTheme(Brightness brightness) {
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFF0F172A),
+      backgroundColor:
+          isDark ? const Color(0xFF1E293B) : const Color(0xFF0F172A),
       contentTextStyle: const TextStyle(color: Colors.white),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
     ),

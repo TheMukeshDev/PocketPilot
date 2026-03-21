@@ -229,7 +229,8 @@ class PaymentService {
       transactionNote: transactionNote,
     );
 
-    _log('Validated input: pa=$normalizedUpiId, pn=${receiverName.trim()}, am=${amount.toStringAsFixed(2)}');
+    _log(
+        'Validated input: pa=$normalizedUpiId, pn=${receiverName.trim()}, am=${amount.toStringAsFixed(2)}');
     _log('Generated UPI URI: ${paymentUri.toString()}');
 
     // Primary: url_launcher implicit external app (Android chooser).
@@ -237,7 +238,8 @@ class PaymentService {
     if (launchedWithChooser) {
       return const PaymentResult(
         status: PaymentStatus.submitted,
-        message: 'Opened UPI app chooser. Complete payment and return to confirm.',
+        message:
+            'Opened UPI app chooser. Complete payment and return to confirm.',
       );
     }
 
@@ -249,7 +251,8 @@ class PaymentService {
     if (launchedNativeChooser) {
       return const PaymentResult(
         status: PaymentStatus.submitted,
-        message: 'Opened UPI app chooser. Complete payment and return to confirm.',
+        message:
+            'Opened UPI app chooser. Complete payment and return to confirm.',
       );
     }
 
@@ -311,7 +314,8 @@ class PaymentService {
     if (launchedWithChooser) {
       return const PaymentResult(
         status: PaymentStatus.submitted,
-        message: 'Opened UPI app chooser. Select another app and complete payment.',
+        message:
+            'Opened UPI app chooser. Select another app and complete payment.',
       );
     }
 
@@ -323,7 +327,8 @@ class PaymentService {
     if (launchedNativeChooser) {
       return const PaymentResult(
         status: PaymentStatus.submitted,
-        message: 'Opened UPI app chooser. Select another app and complete payment.',
+        message:
+            'Opened UPI app chooser. Select another app and complete payment.',
       );
     }
 
@@ -432,10 +437,12 @@ class PaymentService {
     final packageName = app.packageName.toLowerCase();
     final name = app.name.trim();
 
-    if (packageName.contains('google') || name.toLowerCase().contains('google pay')) {
+    if (packageName.contains('google') ||
+        name.toLowerCase().contains('google pay')) {
       return 'GPay';
     }
-    if (packageName.contains('amazon') || name.toLowerCase().contains('amazon')) {
+    if (packageName.contains('amazon') ||
+        name.toLowerCase().contains('amazon')) {
       return 'Amazon Pay UPI';
     }
     return name;

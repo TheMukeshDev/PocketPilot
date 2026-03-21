@@ -40,7 +40,8 @@ class WeeklyTrendsScreen extends StatelessWidget {
         .subtract(Duration(days: now.weekday - 1));
 
     final totals = _weeklyTotals(weekStart);
-    final weeklyTotal = totals.values.fold<double>(0, (sum, item) => sum + item);
+    final weeklyTotal =
+        totals.values.fold<double>(0, (sum, item) => sum + item);
 
     final highestEntry = totals.entries.reduce(
       (a, b) => a.value >= b.value ? a : b,
@@ -150,7 +151,8 @@ class WeeklyTrendsScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Total weekly spending: ₹${weeklyTotal.toStringAsFixed(0)}'),
+                    Text(
+                        'Total weekly spending: ₹${weeklyTotal.toStringAsFixed(0)}'),
                     const SizedBox(height: 6),
                     Text(
                       'Highest spending day: ${_weekdayLabel(highestEntry.key)} '

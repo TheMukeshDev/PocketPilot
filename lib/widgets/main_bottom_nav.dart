@@ -152,7 +152,8 @@ class _BottomNavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final iconColor = active ? colorScheme.primary : colorScheme.onSurfaceVariant;
+    final iconColor =
+        active ? colorScheme.primary : colorScheme.onSurfaceVariant;
 
     return InkWell(
       onTap: onTap,
@@ -171,7 +172,8 @@ class _BottomNavItem extends StatelessWidget {
                     right: -7,
                     top: -4,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 5, vertical: 1),
                       decoration: BoxDecoration(
                         color: colorScheme.error,
                         borderRadius: BorderRadius.circular(10),

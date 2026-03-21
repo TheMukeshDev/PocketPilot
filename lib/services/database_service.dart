@@ -59,9 +59,11 @@ class DatabaseService implements ExpenseStore {
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
-          await _addColumnIfMissing(db, _expensesTable, 'date', 'TEXT NOT NULL DEFAULT ""');
+          await _addColumnIfMissing(
+              db, _expensesTable, 'date', 'TEXT NOT NULL DEFAULT ""');
           await _addColumnIfMissing(db, _expensesTable, 'user_id', 'TEXT');
-          await _addColumnIfMissing(db, _expensesTable, 'synced', 'INTEGER NOT NULL DEFAULT 0');
+          await _addColumnIfMissing(
+              db, _expensesTable, 'synced', 'INTEGER NOT NULL DEFAULT 0');
         }
 
         if (oldVersion < 3) {
@@ -83,8 +85,10 @@ class DatabaseService implements ExpenseStore {
     await _addColumnIfMissing(db, _expensesTable, 'cloud_id', 'TEXT');
     await _addColumnIfMissing(db, _expensesTable, 'userId', 'TEXT');
     await _addColumnIfMissing(db, _expensesTable, 'user_id', 'TEXT');
-    await _addColumnIfMissing(db, _expensesTable, 'synced', 'INTEGER NOT NULL DEFAULT 0');
-    await _addColumnIfMissing(db, _expensesTable, 'date', 'TEXT NOT NULL DEFAULT ""');
+    await _addColumnIfMissing(
+        db, _expensesTable, 'synced', 'INTEGER NOT NULL DEFAULT 0');
+    await _addColumnIfMissing(
+        db, _expensesTable, 'date', 'TEXT NOT NULL DEFAULT ""');
   }
 
   Future<void> _addColumnIfMissing(
@@ -121,7 +125,8 @@ class DatabaseService implements ExpenseStore {
         ? await db.query(_expensesTable, orderBy: 'date DESC, id DESC')
         : await db.query(
             _expensesTable,
-            where: 'userId = ? OR user_id = ? OR userId IS NULL OR user_id IS NULL',
+            where:
+                'userId = ? OR user_id = ? OR userId IS NULL OR user_id IS NULL',
             whereArgs: [userId, userId],
             orderBy: 'date DESC, id DESC',
           );

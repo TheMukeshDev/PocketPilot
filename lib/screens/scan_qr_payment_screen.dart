@@ -292,7 +292,8 @@ class _ScanQrPaymentScreenState extends State<ScanQrPaymentScreen> {
                         return ChoiceChip(
                           label: Text(category),
                           selected: selected,
-                          onSelected: (_) => setState(() => _selectedCategory = category),
+                          onSelected: (_) =>
+                              setState(() => _selectedCategory = category),
                         );
                       },
                     ),

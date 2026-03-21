@@ -43,7 +43,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _submitEmailAuth() async {
@@ -69,7 +70,8 @@ class _LoginScreenState extends State<LoginScreen> {
           'Verification email sent. Please verify your email inbox before using all features.',
         );
       } else {
-        final isVerified = await AuthService.instance.isCurrentUserEmailVerified();
+        final isVerified =
+            await AuthService.instance.isCurrentUserEmailVerified();
         if (!isVerified) {
           _showMessage(
             'Your email is not verified yet. Open inbox to verify, or tap Resend Verification Email.',
@@ -100,7 +102,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _openForgotPasswordDialog() async {
-    final controller = TextEditingController(text: _emailController.text.trim());
+    final controller =
+        TextEditingController(text: _emailController.text.trim());
 
     final email = await showDialog<String>(
       context: context,
@@ -122,7 +125,8 @@ class _LoginScreenState extends State<LoginScreen> {
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(controller.text.trim()),
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(controller.text.trim()),
               child: const Text('Send Reset Link'),
             ),
           ],
@@ -138,7 +142,8 @@ class _LoginScreenState extends State<LoginScreen> {
       await AuthService.instance.sendPasswordResetEmail(email: email);
       _showMessage('Password reset email sent to $email');
     } catch (error) {
-      _showMessage(AuthService.instance.userMessageFor(error, isRegistration: false));
+      _showMessage(
+          AuthService.instance.userMessageFor(error, isRegistration: false));
     }
   }
 
@@ -147,7 +152,8 @@ class _LoginScreenState extends State<LoginScreen> {
       await AuthService.instance.sendVerificationEmailToCurrentUser();
       _showMessage('Verification email sent. Please check your inbox.');
     } catch (error) {
-      _showMessage(AuthService.instance.userMessageFor(error, isRegistration: false));
+      _showMessage(
+          AuthService.instance.userMessageFor(error, isRegistration: false));
     }
   }
 
@@ -168,8 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       if (!mounted) return;
       _showMessage(
-        AuthService.instance
-            .userMessageFor(error, isRegistration: false),
+        AuthService.instance.userMessageFor(error, isRegistration: false),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -381,8 +386,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           FilledButton(
                             onPressed: _isLoading ? null : _submitEmailAuth,
                             style: FilledButton.styleFrom(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -410,8 +414,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             onPressed: _isLoading
                                 ? null
                                 : () => setState(
-                                      () =>
-                                          _isRegisterMode = !_isRegisterMode,
+                                      () => _isRegisterMode = !_isRegisterMode,
                                     ),
                             child: Text(
                               _isRegisterMode
@@ -422,15 +425,13 @@ class _LoginScreenState extends State<LoginScreen> {
                           if (!_isRegisterMode) ...[
                             const SizedBox(height: 4),
                             TextButton(
-                              onPressed: _isLoading
-                                  ? null
-                                  : _openForgotPasswordDialog,
+                              onPressed:
+                                  _isLoading ? null : _openForgotPasswordDialog,
                               child: const Text('Forgot password?'),
                             ),
                             TextButton(
-                              onPressed: _isLoading
-                                  ? null
-                                  : _resendVerificationEmail,
+                              onPressed:
+                                  _isLoading ? null : _resendVerificationEmail,
                               child: const Text('Resend verification email'),
                             ),
                           ],

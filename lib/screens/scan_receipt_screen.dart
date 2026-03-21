@@ -77,8 +77,7 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen>
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  String _formatDate(DateTime d) =>
-      '${d.day.toString().padLeft(2, '0')}/'
+  String _formatDate(DateTime d) => '${d.day.toString().padLeft(2, '0')}/'
       '${d.month.toString().padLeft(2, '0')}/'
       '${d.year}';
 
@@ -456,9 +455,8 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen>
                               ? Icons.auto_awesome
                               : Icons.text_fields_rounded,
                           color: result.usedAi ? cs.tertiary : cs.secondary,
-                          onBackground: result.usedAi
-                              ? cs.onTertiary
-                              : cs.onSecondary,
+                          onBackground:
+                              result.usedAi ? cs.onTertiary : cs.onSecondary,
                         ),
                       ),
                       Positioned(
@@ -514,8 +512,8 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen>
               // ── Detected data summary strip ────────────────────────────
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 20),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
                   color: result.hasAmount
                       ? Colors.green.withOpacity(0.08)
@@ -572,8 +570,7 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen>
               ),
               const SizedBox(height: 8),
               Card(
-                margin:
-                    const EdgeInsets.symmetric(horizontal: 20),
+                margin: const EdgeInsets.symmetric(horizontal: 20),
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -621,8 +618,7 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen>
                           cs: cs,
                           detected: result.category != 'Other',
                         ),
-                        items:
-                            ReceiptScannerService.allCategories.map((cat) {
+                        items: ReceiptScannerService.allCategories.map((cat) {
                           final emoji =
                               ReceiptScannerService.categoryEmoji[cat] ?? '';
                           return DropdownMenuItem(
@@ -757,8 +753,7 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen>
             ? BorderSide(color: cs.primary.withOpacity(0.3), width: 1)
             : BorderSide.none,
       ),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
     );
   }
 
@@ -797,8 +792,7 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('How Add Receipt Works'),
-        contentPadding:
-            const EdgeInsets.fromLTRB(20, 16, 20, 0),
+        contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -809,13 +803,12 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen>
             ),
             _HelpStep(
               icon: Icons.text_fields_rounded,
-              text:
-              'On-device OCR extracts receipt text instantly.',
+              text: 'On-device OCR extracts receipt text instantly.',
             ),
             _HelpStep(
               icon: Icons.auto_awesome,
               text:
-              'Smart detection fills gaps in amount, merchant, and category.',
+                  'Smart detection fills gaps in amount, merchant, and category.',
             ),
             _HelpStep(
               icon: Icons.edit_rounded,
@@ -1038,8 +1031,8 @@ class _HelpStep extends StatelessWidget {
           Icon(icon, size: 20, color: cs.primary),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(text,
-                style: const TextStyle(fontSize: 13.5, height: 1.4)),
+            child:
+                Text(text, style: const TextStyle(fontSize: 13.5, height: 1.4)),
           ),
         ],
       ),
@@ -1080,7 +1073,8 @@ class _CornerPainter extends CustomPainter {
       canvas.drawLine(Offset.zero, const Offset(0, len), paint);
     }
     if (topRight) {
-      canvas.drawLine(Offset(size.width, 0), Offset(size.width - len, 0), paint);
+      canvas.drawLine(
+          Offset(size.width, 0), Offset(size.width - len, 0), paint);
       canvas.drawLine(Offset(size.width, 0), Offset(size.width, len), paint);
     }
     if (bottomLeft) {

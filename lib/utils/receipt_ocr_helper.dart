@@ -11,7 +11,8 @@ class ReceiptOcrResult {
   final int? amount;
   final String? merchantName;
 
-  bool get hasUsefulData => amount != null || (merchantName?.isNotEmpty ?? false);
+  bool get hasUsefulData =>
+      amount != null || (merchantName?.isNotEmpty ?? false);
 }
 
 class ReceiptOcrHelper {
@@ -64,9 +65,11 @@ class ReceiptOcrHelper {
       if (!amountLineRegex.hasMatch(line)) {
         continue;
       }
-      final numberMatches = RegExp(r'(\d[\d,]*(?:\.\d{1,2})?)').allMatches(line);
+      final numberMatches =
+          RegExp(r'(\d[\d,]*(?:\.\d{1,2})?)').allMatches(line);
       for (final match in numberMatches) {
-        final value = double.tryParse((match.group(1) ?? '').replaceAll(',', ''));
+        final value =
+            double.tryParse((match.group(1) ?? '').replaceAll(',', ''));
         if (value != null && value > 0) {
           best = best == null ? value : (value > best ? value : best);
         }
@@ -94,7 +97,10 @@ class ReceiptOcrHelper {
       if (RegExp(r'^[\d\s.,\-/:+()]+$').hasMatch(line)) {
         continue;
       }
-      if (RegExp(r'(invoice|receipt|tax\s+invoice|bill\s+no|gstin|phone|mobile|date)', caseSensitive: false).hasMatch(line)) {
+      if (RegExp(
+              r'(invoice|receipt|tax\s+invoice|bill\s+no|gstin|phone|mobile|date)',
+              caseSensitive: false)
+          .hasMatch(line)) {
         continue;
       }
       if (line.contains('@')) {

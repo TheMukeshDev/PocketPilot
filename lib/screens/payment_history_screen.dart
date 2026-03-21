@@ -4,6 +4,7 @@ import '../models/expense.dart';
 import '../services/auth_service.dart';
 import '../services/expense_service.dart';
 import '../widgets/main_bottom_nav.dart';
+import 'add_expense_screen.dart';
 import 'alerts_screen.dart';
 import 'scan_receipt_screen.dart';
 import 'scan_qr_payment_screen.dart';
@@ -54,9 +55,48 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   }
 
   Future<void> _openAddReceiptFlow() async {
-    final newExpense = await Navigator.of(context).push<Expense>(
-      MaterialPageRoute(builder: (_) => const ScanReceiptScreen()),
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.document_scanner_rounded),
+                title: const Text('Scan Receipt'),
+                subtitle: const Text('Use camera/gallery auto-detection'),
+                onTap: () => Navigator.of(sheetContext).pop('scan'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.edit_note_rounded),
+                title: const Text('Add Manually'),
+                subtitle: const Text('Enter title, amount and category'),
+                onTap: () => Navigator.of(sheetContext).pop('manual'),
+              ),
+            ],
+          ),
+        );
+      },
     );
+
+    if (!mounted || action == null) {
+      return;
+    }
+
+    Expense? newExpense;
+    if (action == 'manual') {
+      newExpense = await Navigator.of(context).push<Expense>(
+        MaterialPageRoute(builder: (context) => const AddExpenseScreen()),
+      );
+    } else {
+      newExpense = await Navigator.of(context).push<Expense>(
+        MaterialPageRoute(builder: (_) => const ScanReceiptScreen()),
+      );
+    }
 
     if (newExpense == null || !mounted) {
       return;
@@ -170,7 +210,8 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
     final alerts = <String>[
       if (mergedHistory.isNotEmpty)
         'You have ${mergedHistory.length} merged transactions in history.',
-      if (mergedHistory.isEmpty) 'No expenses tracked yet. Start with Scan to Pay.',
+      if (mergedHistory.isEmpty)
+        'No expenses tracked yet. Start with Scan to Pay.',
     ];
 
     return Scaffold(
@@ -180,7 +221,8 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
       bottomNavigationBar: MainBottomNav(
         currentTab: AppBottomTab.history,
         alertsCount: alerts.length,
-        onHomeTap: () => Navigator.of(context).popUntil((route) => route.isFirst),
+        onHomeTap: () =>
+            Navigator.of(context).popUntil((route) => route.isFirst),
         onAlertsTap: () {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
@@ -217,7 +259,8 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                       child: Text(
                         '₹',
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
                           fontWeight: FontWeight.w700,
                         ),
                       ),

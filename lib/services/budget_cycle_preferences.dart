@@ -15,7 +15,8 @@ class BudgetCyclePreferences {
   static Future<int> loadForUser(String userId, {DateTime? now}) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getInt(_cycleStartDayKey(userId));
-    final effective = normalizeDay(raw ?? defaultStartDay(now ?? DateTime.now()));
+    final effective =
+        normalizeDay(raw ?? defaultStartDay(now ?? DateTime.now()));
 
     if (raw == null) {
       await prefs.setInt(_cycleStartDayKey(userId), effective);
