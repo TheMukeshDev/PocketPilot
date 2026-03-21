@@ -49,6 +49,11 @@ class ExpenseService {
     await _databaseService.deleteExpense(id);
   }
 
+  Future<void> updateExpense(Expense expense) async {
+    if (expense.id == null) return;
+    await _databaseService.updateExpense(expense);
+  }
+
   Future<List<Expense>> syncAndFetch(AppUser? user) async {
     if (user == null) {
       return _databaseService.getExpenses(null);

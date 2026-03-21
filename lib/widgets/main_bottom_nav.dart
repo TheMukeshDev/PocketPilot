@@ -63,8 +63,8 @@ class MainBottomNav extends StatelessWidget {
                   const SizedBox(width: 78),
                   Expanded(
                     child: _BottomNavItem(
-                      icon: Icons.receipt_long_rounded,
-                      label: 'Add Receipt',
+                      icon: Icons.add_card_rounded,
+                      label: 'Add',
                       active: currentTab == AppBottomTab.addReceipt,
                       onTap: onAddReceiptTap,
                     ),

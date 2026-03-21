@@ -8,6 +8,7 @@ abstract class ExpenseStore {
   Future<Expense> insertExpense(Expense expense);
   Future<List<Expense>> getExpenses(String? userId);
   Future<void> deleteExpense(int id);
+  Future<void> updateExpense(Expense expense);
   Future<void> markSynced(int id);
 }
 
@@ -221,6 +222,16 @@ class DatabaseService implements ExpenseStore {
       _expensesTable,
       where: 'id = ?',
       whereArgs: [id],
+    );
+  }
+
+  @override
+  Future<void> updateExpense(Expense expense) async {
+    if (expense.id == null) return;
+    final db = await database;
+    await db.rawUpdate(
+      'UPDATE $_expensesTable SET title = ?, amount = ?, category = ?, date = ?, synced = 0 WHERE id = ?',
+      [expense.title, expense.amount, expense.category, expense.date.toIso8601String(), expense.id],
     );
   }
 }

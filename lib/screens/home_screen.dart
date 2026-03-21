@@ -26,7 +26,6 @@ import '../services/theme_service.dart';
 import '../widgets/alert_card.dart';
 import '../widgets/budget_card.dart';
 import '../widgets/challenge_card.dart';
-import '../widgets/expense_card.dart';
 import '../widgets/financial_health_card.dart';
 import '../widgets/main_bottom_nav.dart';
 import '../widgets/prediction_card.dart';
@@ -386,49 +385,6 @@ class _HomeScreenState extends State<HomeScreen> {
         date: now,
       ),
     );
-  }
-
-  Future<void> _deleteExpense(Expense expense) async {
-    final id = expense.id;
-    if (id != null) {
-      await _expenseStore.deleteExpense(id);
-    }
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      expenses = expenses.where((item) => item.id != expense.id).toList();
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Expense deleted.')),
-    );
-  }
-
-  Future<void> _confirmDeleteExpense(Expense expense) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete expense?'),
-        content: Text('Remove "${expense.title}" from your expense list?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await _deleteExpense(expense);
-    }
   }
 
   Future<void> _openManualAddExpenseScreen() async {
@@ -1318,6 +1274,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         emphasize: true,
                       ),
                       PredictionCard(prediction: _prediction),
+                      const SizedBox(height: 8),
                       Card(
                         elevation: 1.5,
                         shape: RoundedRectangleBorder(
@@ -1343,70 +1300,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Expense List',
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                      ),
-                      const SizedBox(height: 10),
-                      if (expenses.isEmpty)
-                        Card(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(
-                              vertical: 24,
-                              horizontal: 16,
-                            ),
-                            child: Column(
-                              children: [
-                                Icon(Icons.inbox_rounded, size: 36),
-                                SizedBox(height: 8),
-                                Text('No expenses yet. Add your first one!'),
-                              ],
-                            ),
-                          ),
-                        )
-                      else
-                        ...expenses.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final expense = entry.value;
-
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              bottom: index == expenses.length - 1 ? 0 : 10,
-                            ),
-                            child: Dismissible(
-                              key: ValueKey(expense.id ?? index),
-                              direction: DismissDirection.endToStart,
-                              confirmDismiss: (_) async {
-                                await _confirmDeleteExpense(expense);
-                                return false;
-                              },
-                              background: Container(
-                                alignment: Alignment.centerRight,
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 20),
-                                decoration: BoxDecoration(
-                                  color: colorScheme.error,
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Icon(
-                                  Icons.delete_rounded,
-                                  color: colorScheme.onError,
-                                ),
-                              ),
-                              child: ExpenseCard(
-                                expense: expense,
-                                onDelete: () => _confirmDeleteExpense(expense),
-                              ),
-                            ),
-                          );
-                        }),
                     ],
                   ),
           ),

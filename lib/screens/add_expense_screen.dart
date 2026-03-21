@@ -6,7 +6,9 @@ import '../services/receipt_scanner_service.dart';
 import 'scan_receipt_screen.dart';
 
 class AddExpenseScreen extends StatefulWidget {
-  const AddExpenseScreen({super.key});
+  const AddExpenseScreen({super.key, this.expenseToEdit});
+
+  final Expense? expenseToEdit;
 
   @override
   State<AddExpenseScreen> createState() => _AddExpenseScreenState();
@@ -19,12 +21,38 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final ImagePicker _imagePicker = ImagePicker();
 
-  String _category = 'Food';
-  DateTime _selectedDate = DateTime.now();
+  late String _category;
+  late DateTime _selectedDate;
   bool _isScanning = false;
+  bool _isEditing = false;
+  int? _expenseId;
 
-  // Full category list from scanner service (covers all OCR/AI detections).
   List<String> get _categories => ReceiptScannerService.allCategories;
+
+  @override
+  void initState() {
+    super.initState();
+    _isEditing = widget.expenseToEdit != null;
+    if (_isEditing) {
+      final expense = widget.expenseToEdit!;
+      _expenseId = expense.id;
+      _titleController.text = expense.title;
+      _amountController.text = expense.amount.toString();
+      _category = expense.category;
+      _selectedDate = expense.date;
+    } else {
+      _category = 'Food';
+      _selectedDate = DateTime.now();
+    }
+    _updateDateController();
+  }
+
+  void _updateDateController() {
+    final day = _selectedDate.day.toString().padLeft(2, '0');
+    final month = _selectedDate.month.toString().padLeft(2, '0');
+    final year = _selectedDate.year;
+    _dateController.text = '$day/$month/$year';
+  }
 
   @override
   void dispose() {
@@ -32,12 +60,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     _amountController.dispose();
     _dateController.dispose();
     super.dispose();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _dateController.text = _formatDate(_selectedDate);
   }
 
   String _formatDate(DateTime date) {
@@ -341,6 +363,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     }
 
     final expense = Expense(
+      id: _expenseId,
       title: _titleController.text.trim(),
       amount: int.parse(_amountController.text.trim()),
       category: _category,

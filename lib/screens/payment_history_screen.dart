@@ -22,13 +22,17 @@ class PaymentHistoryScreen extends StatefulWidget {
 }
 
 class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
-  static const Duration _mergeWindow = Duration(minutes: 3);
   late List<Expense> _expenses;
 
   @override
   void initState() {
     super.initState();
     _expenses = List<Expense>.from(widget.expenses);
+    _sortExpenses();
+  }
+
+  void _sortExpenses() {
+    _expenses.sort((a, b) => b.date.compareTo(a.date));
   }
 
   Future<void> _openPayFlow() async {
@@ -36,21 +40,17 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
       MaterialPageRoute(builder: (_) => const ScanQrPaymentScreen()),
     );
 
-    if (paidExpense == null || !mounted) {
-      return;
-    }
+    if (paidExpense == null || !mounted) return;
 
     final saved = await ExpenseService.instance.addExpense(
       paidExpense,
       AuthService.instance.currentUser,
     );
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     setState(() {
-      _expenses = [saved, ..._expenses];
+      _expenses.insert(0, saved);
     });
   }
 
@@ -83,9 +83,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
       },
     );
 
-    if (!mounted || action == null) {
-      return;
-    }
+    if (!mounted || action == null) return;
 
     Expense? newExpense;
     if (action == 'manual') {
@@ -98,96 +96,116 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
       );
     }
 
-    if (newExpense == null || !mounted) {
-      return;
-    }
+    if (newExpense == null || !mounted) return;
 
     final saved = await ExpenseService.instance.addExpense(
       newExpense,
       AuthService.instance.currentUser,
     );
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     setState(() {
-      _expenses = [saved, ..._expenses];
+      _expenses.insert(0, saved);
     });
   }
 
-  List<Expense> _mergedHistory() {
-    final sorted = List<Expense>.from(_expenses)
-      ..sort((a, b) => b.date.compareTo(a.date));
+  Future<void> _deleteExpense(Expense expense, int index) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Expense'),
+        content: Text('Delete "${expense.title}" (₹${expense.amount})?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
 
-    final merged = <Expense>[];
-    for (final candidate in sorted) {
-      final duplicateIndex = merged.indexWhere(
-        (existing) => _isLikelySameTransaction(existing, candidate),
-      );
+    if (confirmed != true || !mounted) return;
 
-      if (duplicateIndex == -1) {
-        merged.add(candidate);
-        continue;
-      }
+    await ExpenseService.instance.deleteExpense(expense);
 
-      final existing = merged[duplicateIndex];
-      if (_isPreferred(candidate, over: existing)) {
-        merged[duplicateIndex] = candidate;
-      }
-    }
+    setState(() {
+      _expenses.removeAt(index);
+    });
 
-    return merged;
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Expense deleted')),
+    );
   }
 
-  bool _isLikelySameTransaction(Expense a, Expense b) {
-    if (a.amount != b.amount) return false;
+  Future<void> _editExpense(Expense expense, int index) async {
+    final updated = await Navigator.of(context).push<Expense>(
+      MaterialPageRoute(
+        builder: (_) => AddExpenseScreen(expenseToEdit: expense),
+      ),
+    );
 
-    final diff = a.date.difference(b.date).abs();
-    if (diff > _mergeWindow) return false;
+    if (updated == null || !mounted) return;
 
-    final aOnline = _isOnlineExpense(a);
-    final bOnline = _isOnlineExpense(b);
+    await ExpenseService.instance.updateExpense(updated);
 
-    return aOnline && bOnline;
+    setState(() {
+      _expenses[index] = updated;
+      _sortExpenses();
+    });
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Expense updated')),
+    );
   }
 
-  bool _isPreferred(Expense candidate, {required Expense over}) {
-    final candidateTitle = candidate.title.toLowerCase();
-    final overTitle = over.title.toLowerCase();
+  Future<void> _deleteAllExpenses() async {
+    if (_expenses.isEmpty) return;
 
-    final candidateIsUpi = candidateTitle.contains('[online] upi');
-    final overIsUpi = overTitle.contains('[online] upi');
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete All Expenses'),
+        content: Text('Delete all ${_expenses.length} expenses? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete All'),
+          ),
+        ],
+      ),
+    );
 
-    if (candidateIsUpi && !overIsUpi) {
-      return true;
+    if (confirmed != true || !mounted) return;
+
+    for (final expense in _expenses) {
+      await ExpenseService.instance.deleteExpense(expense);
     }
 
-    if (!candidateIsUpi && overIsUpi) {
-      return false;
-    }
+    setState(() {
+      _expenses.clear();
+    });
 
-    return candidate.date.isAfter(over.date);
-  }
-
-  bool _isOnlineExpense(Expense expense) {
-    final title = expense.title.toLowerCase();
-    return title.contains('[online]') ||
-        title.contains('[online sms]') ||
-        title.contains('upi') ||
-        title.contains('debit');
-  }
-
-  String _displayTitle(Expense expense) {
-    final raw = expense.title.trim();
-    if (raw.startsWith('[Online] UPI - ')) {
-      final receiver = raw.replaceFirst('[Online] UPI - ', '').trim();
-      return 'UPI Payment to $receiver';
-    }
-    if (raw.startsWith('[Online SMS] ')) {
-      return 'SMS Debit • ${raw.replaceFirst('[Online SMS] ', '')}';
-    }
-    return raw;
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('All expenses deleted')),
+    );
   }
 
   String _formatDateTime(DateTime date) {
@@ -206,17 +224,25 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final mergedHistory = _mergedHistory();
+    final colorScheme = Theme.of(context).colorScheme;
     final alerts = <String>[
-      if (mergedHistory.isNotEmpty)
-        'You have ${mergedHistory.length} merged transactions in history.',
-      if (mergedHistory.isEmpty)
-        'No expenses tracked yet. Start with Scan to Pay.',
+      if (_expenses.isNotEmpty)
+        'You have ${_expenses.length} transactions.',
+      if (_expenses.isEmpty)
+        'No expenses tracked yet.',
     ];
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Expense History'),
+        actions: [
+          if (_expenses.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.delete_sweep_rounded),
+              tooltip: 'Delete All',
+              onPressed: _deleteAllExpenses,
+            ),
+        ],
       ),
       bottomNavigationBar: MainBottomNav(
         currentTab: AppBottomTab.history,
@@ -234,55 +260,124 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
         onAddReceiptTap: _openAddReceiptFlow,
         onHistoryTap: () {},
       ),
-      body: mergedHistory.isEmpty
-          ? const Center(
+      body: _expenses.isEmpty
+          ? Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'No expense history yet.\nYour manual + online + SMS transactions will appear here.',
-                  textAlign: TextAlign.center,
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.receipt_long_rounded,
+                      size: 64,
+                      color: colorScheme.outlineVariant,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No expenses yet',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Add expenses using Scan or Add button',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
               ),
             )
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 130),
-              itemCount: mergedHistory.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemCount: _expenses.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
-                final expense = mergedHistory[index];
-                return Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                final expense = _expenses[index];
+                return Dismissible(
+                  key: ValueKey(expense.id),
+                  direction: DismissDirection.endToStart,
+                  confirmDismiss: (_) async {
+                    await _deleteExpense(expense, index);
+                    return false;
+                  },
+                  background: Container(
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 20),
+                    decoration: BoxDecoration(
+                      color: colorScheme.error,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      Icons.delete_rounded,
+                      color: colorScheme.onError,
+                    ),
                   ),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      child: Text(
-                        '₹',
-                        style: TextStyle(
-                          color:
-                              Theme.of(context).colorScheme.onPrimaryContainer,
-                          fontWeight: FontWeight.w700,
+                  child: Card(
+                    margin: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: ListTile(
+                      onTap: () => _editExpense(expense, index),
+                      leading: CircleAvatar(
+                        backgroundColor: colorScheme.primaryContainer,
+                        child: Icon(
+                          _getCategoryIcon(expense.category),
+                          color: colorScheme.onPrimaryContainer,
+                          size: 20,
                         ),
                       ),
-                    ),
-                    title: Text(
-                      _displayTitle(expense),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text(
-                      '${expense.category} • ${_formatDateTime(expense.date)}',
-                    ),
-                    trailing: Text(
-                      '₹${expense.amount}',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
+                      title: Text(
+                        expense.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        '${expense.category} • ${_formatDateTime(expense.date)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      trailing: Text(
+                        '₹${expense.amount}',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: colorScheme.primary,
+                            ),
+                      ),
                     ),
                   ),
                 );
               },
             ),
     );
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'food':
+        return Icons.restaurant_rounded;
+      case 'travel':
+        return Icons.directions_car_rounded;
+      case 'shopping':
+        return Icons.shopping_bag_rounded;
+      case 'entertainment':
+        return Icons.movie_rounded;
+      case 'bills':
+        return Icons.receipt_rounded;
+      case 'health':
+        return Icons.medical_services_rounded;
+      case 'education':
+        return Icons.school_rounded;
+      case 'savings':
+        return Icons.savings_rounded;
+      default:
+        return Icons.payment_rounded;
+    }
   }
 }
