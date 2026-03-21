@@ -1300,11 +1300,132 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Recent Expenses',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                          TextButton(
+                            onPressed: _openPaymentHistory,
+                            child: const Text('See All'),
+                          ),
+                        ],
+                      ),
+                      if (expenses.isEmpty)
+                        Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                            child: Center(
+                              child: Column(
+                                children: [
+                                  Icon(Icons.inbox_rounded, size: 36, color: colorScheme.outlineVariant),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'No expenses yet',
+                                    style: TextStyle(color: colorScheme.onSurfaceVariant),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        ...List.generate(
+                          expenses.length > 5 ? 5 : expenses.length,
+                          (index) {
+                            final expense = expenses[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: _ExpenseListItem(
+                                expense: expense,
+                                onEdit: () => _editExpense(expense),
+                                onDelete: () => _confirmDeleteExpense(expense),
+                              ),
+                            );
+                          },
+                        ),
                     ],
                   ),
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _confirmDeleteExpense(Expense expense) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Expense'),
+        content: Text('Delete "${expense.title}" (₹${expense.amount})?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _deleteExpense(expense);
+    }
+  }
+
+  Future<void> _deleteExpense(Expense expense) async {
+    final id = expense.id;
+    if (id != null) {
+      await _expenseStore.deleteExpense(id);
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      expenses = expenses.where((item) => item.id != expense.id).toList();
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Expense deleted')),
+    );
+  }
+
+  Future<void> _editExpense(Expense expense) async {
+    final updated = await Navigator.of(context).push<Expense>(
+      MaterialPageRoute(
+        builder: (_) => AddExpenseScreen(expenseToEdit: expense),
+      ),
+    );
+
+    if (updated == null || !mounted) return;
+
+    await ExpenseService.instance.updateExpense(updated);
+
+    setState(() {
+      final index = expenses.indexWhere((e) => e.id == expense.id);
+      if (index != -1) {
+        expenses[index] = updated;
+      }
+      expenses.sort((a, b) => b.date.compareTo(a.date));
+    });
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Expense updated')),
     );
   }
 }
@@ -1317,6 +1438,97 @@ class _PaymentMarker {
 
   final int amount;
   final DateTime createdAt;
+}
+
+class _ExpenseListItem extends StatelessWidget {
+  const _ExpenseListItem({
+    required this.expense,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final Expense expense;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Card(
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: colorScheme.primaryContainer,
+              child: Icon(
+                _getCategoryIcon(expense.category),
+                color: colorScheme.onPrimaryContainer,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    expense.title,
+                    style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    expense.category,
+                    style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              '₹${expense.amount}',
+              style: textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: colorScheme.primary,
+              ),
+            ),
+            const SizedBox(width: 4),
+            IconButton(
+              icon: Icon(Icons.edit_rounded, size: 20, color: colorScheme.primary),
+              onPressed: onEdit,
+              tooltip: 'Edit',
+              visualDensity: VisualDensity.compact,
+            ),
+            IconButton(
+              icon: Icon(Icons.delete_rounded, size: 20, color: colorScheme.error),
+              onPressed: onDelete,
+              tooltip: 'Delete',
+              visualDensity: VisualDensity.compact,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'food': return Icons.restaurant_rounded;
+      case 'travel': return Icons.directions_car_rounded;
+      case 'shopping': return Icons.shopping_bag_rounded;
+      case 'entertainment': return Icons.movie_rounded;
+      case 'bills': return Icons.receipt_rounded;
+      case 'health': return Icons.medical_services_rounded;
+      case 'education': return Icons.school_rounded;
+      case 'savings': return Icons.savings_rounded;
+      default: return Icons.payment_rounded;
+    }
+  }
 }
 
 // ── Quick Actions Grid (PhonePe-style) ───────────────────────────────────────

@@ -36,6 +36,14 @@ class FakeExpenseStore implements ExpenseStore {
     _items.insert(0, savedExpense);
     return savedExpense;
   }
+
+  @override
+  Future<void> updateExpense(Expense expense) async {
+    final index = _items.indexWhere((e) => e.id == expense.id);
+    if (index != -1) {
+      _items[index] = expense;
+    }
+  }
 }
 
 void main() {
