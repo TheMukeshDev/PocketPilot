@@ -224,20 +224,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) => AlertDialog(
           title: const Text('Budget Cycle Start Date'),
-          contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-          actionsPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          content: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 380),
-            child: SmartDateSelector(
-              selectedDate: selectedDate,
-              onDateSelected: (date) {
-                setModalState(() {
-                  selectedDate = date;
-                });
-              },
-              label: 'Choose which date your budget cycle should start',
-            ),
+          titlePadding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+          contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+          actionsPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          content: SmartDateSelector(
+            selectedDate: selectedDate,
+            onDateSelected: (date) {
+              setModalState(() {
+                selectedDate = date;
+              });
+            },
+            label: 'Choose which date your budget cycle should start',
           ),
           actions: [
             TextButton(

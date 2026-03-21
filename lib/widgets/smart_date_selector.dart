@@ -58,72 +58,161 @@ class _SmartDateSelectorState extends State<SmartDateSelector> {
     widget.onDateSelected(date);
   }
 
+  bool _isSameDate(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final dateService = DateCycleService.instance;
-    final quickOptions = dateService.getQuickDateOptions();
-    final quickLabels = dateService.getQuickDateLabels();
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final tomorrow = today.add(const Duration(days: 1));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           widget.label,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+          style: textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w500,
+          ),
         ),
-        const SizedBox(height: 8),
-
-        // Quick date chips (Today / Yesterday / Tomorrow / Calendar)
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
+        const SizedBox(height: 12),
+        Row(
           children: [
-            for (int i = 0; i < quickOptions.length; i++)
-              ChoiceChip(
-                label: Text(quickLabels[i], softWrap: false),
-                selected: _isSameDate(_selectedDate, quickOptions[i]),
-                selectedColor: Theme.of(context).colorScheme.primaryContainer,
-                backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
-                onSelected: (_) => _selectQuickDate(quickOptions[i]),
+            Expanded(
+              child: _CompactDateChip(
+                label: 'Today',
+                isSelected: _isSameDate(_selectedDate, today),
+                onTap: () => _selectQuickDate(today),
               ),
-            ActionChip(
-              label: const Text('Choose from Calendar'),
-              avatar: const Icon(Icons.calendar_month, size: 18),
-              onPressed: () => _selectDate(context),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _CompactDateChip(
+                label: 'Tomorrow',
+                isSelected: _isSameDate(_selectedDate, tomorrow),
+                onTap: () => _selectQuickDate(tomorrow),
+              ),
             ),
           ],
         ),
-
-        const SizedBox(height: 4),
-
-        // Selected date summary
+        const SizedBox(height: 8),
         Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.event, size: 18),
+            Expanded(
+              child: _CompactDateChip(
+                label: 'Yesterday',
+                isSelected: _isSameDate(_selectedDate, yesterday),
+                onTap: () => _selectQuickDate(yesterday),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _CompactDateChip(
+                label: 'Choose',
+                isSelected: !_isSameDate(_selectedDate, today) &&
+                    !_isSameDate(_selectedDate, tomorrow) &&
+                    !_isSameDate(_selectedDate, yesterday),
+                onTap: () => _selectDate(context),
+                icon: Icons.calendar_today_rounded,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Icon(Icons.event, size: 14, color: colorScheme.primary),
             const SizedBox(width: 6),
             Text(
               dateService.formatDate(_selectedDate),
-              style: Theme.of(context).textTheme.bodySmall,
+              style: textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: colorScheme.primary,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '${dateService.formatDate(dateService.getCycleStart(_selectedDate))} → ${dateService.formatDate(dateService.getCycleEnd(_selectedDate))}',
+              style: textTheme.labelSmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
-        ),
-
-        const SizedBox(height: 4),
-        // Cycle info (if applicable)
-        Text(
-          'Cycle: ${dateService.formatDate(dateService.getCycleStart(_selectedDate))} → ${dateService.formatDate(dateService.getCycleEnd(_selectedDate))}',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
         ),
       ],
     );
   }
+}
 
-  bool _isSameDate(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
+class _CompactDateChip extends StatelessWidget {
+  const _CompactDateChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+    this.icon,
+  });
+
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Material(
+      color: isSelected 
+          ? colorScheme.primaryContainer 
+          : colorScheme.surfaceVariant,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: isSelected
+                ? Border.all(color: colorScheme.primary, width: 1.5)
+                : Border.all(color: colorScheme.outlineVariant),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  size: 14,
+                  color: isSelected 
+                      ? colorScheme.onPrimaryContainer 
+                      : colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 4),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected 
+                      ? colorScheme.onPrimaryContainer 
+                      : colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

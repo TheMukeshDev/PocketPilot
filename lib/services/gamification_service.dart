@@ -65,6 +65,11 @@ class GamificationService {
       updatedGamification,
     );
 
+    // Calculate remaining budget for the cycle
+    final cycleEndEffective = cycleEnd ?? DateTime(current.year, current.month + 1, 1);
+    final totalSpentInCycle = _calculateCycleSpent(expenses, cycleStart, cycleEndEffective);
+    final remaining = availableBudget - totalSpentInCycle;
+
     // Generate challenges with proper progress tracking
     final challenges = _generateChallenges(
       expenses: expenses,
@@ -72,6 +77,8 @@ class GamificationService {
       todaySpent: todaySpent,
       dailyLimit: dailyLimit,
       availableBudget: availableBudget,
+      remaining: remaining,
+      cycleEnd: cycleEndEffective,
       todayValid: todayValid,
       userGamification: updatedGamification,
     );
@@ -194,6 +201,8 @@ class GamificationService {
     required int todaySpent,
     required int dailyLimit,
     required int availableBudget,
+    required int remaining,
+    required DateTime cycleEnd,
     required bool todayValid,
     required UserGamification userGamification,
   }) {
@@ -218,8 +227,27 @@ class GamificationService {
     final weekStart = current.subtract(Duration(days: current.weekday - 1));
     final weekEnd = weekStart.add(const Duration(days: 7));
     final weekSpent = _calculateWeekSpent(expenses, weekStart, weekEnd);
-    final weeklySaved = (availableBudget - weekSpent).clamp(0, 1000000);
-    final weeklyProgress = (weeklySaved / weeklyTarget).clamp(0.0, 1.0);
+    
+    // Calculate weekly budget based on daily limit for each day in the week
+    final now = DateTime.now();
+    int weeklyBudget = 0;
+    for (int i = 0; i < 7; i++) {
+      final day = weekStart.add(Duration(days: i));
+      if (day.isBefore(now) || (day.year == now.year && day.month == now.month && day.day == now.day)) {
+        final daysRemaining = cycleEnd.difference(day).inDays;
+        if (daysRemaining > 0) {
+          final dayLimit = (remaining / daysRemaining).floor();
+          weeklyBudget += dayLimit > 0 ? dayLimit : 1;
+        } else {
+          weeklyBudget += remaining > 0 ? remaining : 0;
+        }
+      }
+    }
+    
+    final weeklySaved = (weeklyBudget - weekSpent).clamp(0, 1000000);
+    final weeklyProgress = weeklyTarget > 0 
+        ? (weeklySaved / weeklyTarget).clamp(0.0, 1.0) 
+        : 0.0;
 
     challenges.add(Challenge(
       id: 'weekly_${_weekKey(current)}',
@@ -256,6 +284,14 @@ class GamificationService {
       List<Expense> expenses, DateTime weekStart, DateTime weekEnd) {
     return expenses
         .where((e) => !e.date.isBefore(weekStart) && e.date.isBefore(weekEnd))
+        .fold(0, (sum, e) => sum + e.amount);
+  }
+
+  int _calculateCycleSpent(
+      List<Expense> expenses, DateTime? cycleStart, DateTime cycleEnd) {
+    if (cycleStart == null) return 0;
+    return expenses
+        .where((e) => !e.date.isBefore(cycleStart) && e.date.isBefore(cycleEnd))
         .fold(0, (sum, e) => sum + e.amount);
   }
 
