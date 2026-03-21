@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/app_notification.dart';
 import '../services/auth_service.dart';
 import '../services/budget_cycle_preferences.dart';
 import '../services/date_cycle_service.dart';
+import '../services/notification_preferences_service.dart';
 import '../services/sms_tracking_preferences.dart';
 import '../services/theme_service.dart';
 import '../widgets/smart_date_selector.dart';
@@ -42,6 +44,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late SmsApprovalMode _smsApprovalMode;
   ThemeMode _themeMode = ThemeService.instance.themeMode.value;
 
+  bool _masterNotificationsEnabled = true;
+  bool _budgetAlertsEnabled = true;
+  bool _streakUpdatesEnabled = true;
+  bool _rewardsPointsEnabled = true;
+  bool _reminderNotificationsEnabled = true;
+
   // Language list — extend when i18n is added.
   static const List<_LangOption> _languages = [
     _LangOption('English', 'en', '🇬🇧'),
@@ -59,6 +67,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _budgetCycleStartDay = widget.budgetCycleStartDay;
     _smsApprovalMode = widget.smsApprovalMode;
     _loadLangPref();
+    _loadNotificationPreferences();
     ThemeService.instance.themeMode.addListener(_onThemeChanged);
   }
 
@@ -66,6 +75,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void dispose() {
     ThemeService.instance.themeMode.removeListener(_onThemeChanged);
     super.dispose();
+  }
+
+  Future<void> _loadNotificationPreferences() async {
+    final prefs = await NotificationPreferencesService.instance.loadPreferences();
+    if (mounted) {
+      setState(() {
+        _masterNotificationsEnabled = prefs.masterEnabled;
+        _budgetAlertsEnabled = prefs.budgetAlertsEnabled;
+        _streakUpdatesEnabled = prefs.streakUpdatesEnabled;
+        _rewardsPointsEnabled = prefs.rewardsPointsEnabled;
+        _reminderNotificationsEnabled = prefs.reminderNotificationsEnabled;
+      });
+    }
+  }
+
+  Future<void> _setMasterNotificationsEnabled(bool value) async {
+    setState(() => _masterNotificationsEnabled = value);
+    await NotificationPreferencesService.instance.setMasterEnabled(value);
+  }
+
+  Future<void> _setBudgetAlertsEnabled(bool value) async {
+    setState(() => _budgetAlertsEnabled = value);
+    await NotificationPreferencesService.instance
+        .setCategoryEnabled(NotificationCategory.budgetAlerts, value);
+  }
+
+  Future<void> _setStreakUpdatesEnabled(bool value) async {
+    setState(() => _streakUpdatesEnabled = value);
+    await NotificationPreferencesService.instance
+        .setCategoryEnabled(NotificationCategory.streakUpdates, value);
+  }
+
+  Future<void> _setRewardsPointsEnabled(bool value) async {
+    setState(() => _rewardsPointsEnabled = value);
+    await NotificationPreferencesService.instance
+        .setCategoryEnabled(NotificationCategory.rewardsPoints, value);
+  }
+
+  Future<void> _setReminderNotificationsEnabled(bool value) async {
+    setState(() => _reminderNotificationsEnabled = value);
+    await NotificationPreferencesService.instance
+        .setCategoryEnabled(NotificationCategory.reminderNotifications, value);
   }
 
   void _onThemeChanged() {
@@ -591,6 +642,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onTap: _openSmsApprovalModePicker,
           ),
 
+          // ── Notifications ────────────────────────────────────────────
+          const _SectionHeader(label: 'Notifications'),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                children: [
+                  SwitchListTile(
+                    title: const Text('Enable Notifications'),
+                    subtitle: Text(
+                      _masterNotificationsEnabled
+                          ? 'Receive notifications from PocketPilot'
+                          : 'Notifications are disabled',
+                    ),
+                    value: _masterNotificationsEnabled,
+                    onChanged: _setMasterNotificationsEnabled,
+                    secondary: CircleAvatar(
+                      backgroundColor: _masterNotificationsEnabled
+                          ? colorScheme.primaryContainer
+                          : colorScheme.surfaceVariant,
+                      child: Icon(
+                        Icons.notifications_rounded,
+                        color: _masterNotificationsEnabled
+                            ? colorScheme.onPrimaryContainer
+                            : colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  if (_masterNotificationsEnabled) ...[
+                    const Divider(indent: 72, height: 1),
+                    _NotificationCategoryTile(
+                      title: 'Budget Alerts',
+                      subtitle: 'Overspending warnings',
+                      icon: Icons.warning_amber_rounded,
+                      value: _budgetAlertsEnabled,
+                      onChanged: _setBudgetAlertsEnabled,
+                    ),
+                    _NotificationCategoryTile(
+                      title: 'Streak Updates',
+                      subtitle: 'Streak milestones and breaks',
+                      icon: Icons.local_fire_department_rounded,
+                      value: _streakUpdatesEnabled,
+                      onChanged: _setStreakUpdatesEnabled,
+                    ),
+                    _NotificationCategoryTile(
+                      title: 'Rewards & Points',
+                      subtitle: 'Challenge completions and badges',
+                      icon: Icons.emoji_events_rounded,
+                      value: _rewardsPointsEnabled,
+                      onChanged: _setRewardsPointsEnabled,
+                    ),
+                    _NotificationCategoryTile(
+                      title: 'Reminders',
+                      subtitle: 'Daily tips and engagement',
+                      icon: Icons.notifications_active_rounded,
+                      value: _reminderNotificationsEnabled,
+                      onChanged: _setReminderNotificationsEnabled,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+
           // ── Budget & Rent ────────────────────────────────────────────
           const _SectionHeader(label: 'Budget & Rent'),
           ListTile(
@@ -723,4 +839,44 @@ class _LangOption {
   final String name;
   final String code;
   final String flag;
+}
+
+class _NotificationCategoryTile extends StatelessWidget {
+  const _NotificationCategoryTile({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return ListTile(
+      leading: CircleAvatar(
+        radius: 18,
+        backgroundColor: colorScheme.secondaryContainer,
+        child: Icon(
+          icon,
+          color: colorScheme.onSecondaryContainer,
+          size: 20,
+        ),
+      ),
+      title: Text(title),
+      subtitle: Text(subtitle),
+      trailing: Switch(
+        value: value,
+        onChanged: onChanged,
+      ),
+      onTap: () => onChanged(!value),
+    );
+  }
 }

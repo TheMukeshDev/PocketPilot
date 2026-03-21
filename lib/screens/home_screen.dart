@@ -17,6 +17,7 @@ import '../services/database_service.dart';
 import '../services/expense_service.dart';
 import '../services/financial_score_service.dart';
 import '../services/notification_service.dart';
+import '../services/notification_trigger_service.dart';
 import '../services/prediction_service.dart';
 import '../services/report_service.dart';
 import '../services/sms_expense_parser.dart';
@@ -733,6 +734,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final currentUser = AuthService.instance.currentUser;
     final effectiveUserId = widget.userId ?? currentUser?.id ?? 'guest';
 
+    NotificationTriggerService.instance.updatePreviousStreak(
+      _gamificationStats.currentStreak,
+    );
+
     final evaluation = await GamificationService.instance.evaluateChallenges(
       expenses: _currentCycleExpenses,
       dailyLimit: dailySpendingLimit,
@@ -753,6 +758,17 @@ class _HomeScreenState extends State<HomeScreen> {
           ? null
           : evaluation.newlyCompleted.first.challenge.id;
     });
+
+    await NotificationTriggerService.instance.checkAndTriggerNotifications(
+      expenses: expenses,
+      dailyLimit: dailySpendingLimit,
+      monthlyBudget: _monthlyBudget,
+      rent: _rent,
+      gamificationStats: _gamificationStats,
+      challenges: _activeChallenges,
+      cycleStart: _currentCycleStart,
+      cycleEnd: _currentCycleEnd,
+    );
 
     for (final badge in evaluation.newlyUnlockedBadges) {
       if (!mounted) {
@@ -1082,23 +1098,20 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(themeToggleIcon),
             tooltip: themeToggleLabel,
           ),
-          // Fetch latest cloud data (Mongo/Firestore)
+          // Download and sync - combined action
           IconButton(
-            onPressed: _fetchFromCloud,
-            icon: const Icon(Icons.download_rounded),
-            tooltip: 'Fetch latest data',
-          ),
-          // Sync
-          IconButton(
-            onPressed: _syncExpenses,
+            onPressed: _isSyncing ? null : () async {
+              await _fetchFromCloud();
+              await _syncExpenses();
+            },
             icon: _isSyncing
                 ? const SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Icon(Icons.cloud_sync_rounded),
-            tooltip: 'Sync Now',
+                : const Icon(Icons.download_rounded),
+            tooltip: 'Download & Sync',
           ),
           // Three-dot menu
           PopupMenuButton<String>(
