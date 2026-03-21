@@ -768,6 +768,7 @@ class _HomeScreenState extends State<HomeScreen> {
       challenges: _activeChallenges,
       cycleStart: _currentCycleStart,
       cycleEnd: _currentCycleEnd,
+      isManualRefresh: true,
     );
 
     for (final badge in evaluation.newlyUnlockedBadges) {

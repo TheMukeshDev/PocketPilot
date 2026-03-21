@@ -40,7 +40,12 @@ class GamificationService {
     final yesterdaySpent =
         _calculateDaySpent(expenses, current.subtract(const Duration(days: 1)));
 
-    final todayValid = todaySpent <= dailyLimit;
+    // Day is only considered complete after 6 PM (18:00) or next day
+    final actualNow = DateTime.now();
+    final dayComplete = actualNow.hour >= 18 || actualNow.day != current.day;
+    
+    // Today's valid status - only award points if day is complete AND under limit
+    final todayValid = dayComplete && todaySpent <= dailyLimit;
 
     // Update streak and point logic based on today performance
     final updatedGamification = _updateStreakAndPoints(
@@ -50,7 +55,7 @@ class GamificationService {
       current,
     );
 
-    // Mark today as processed once valid and points are awarded
+    // Mark today as processed once valid and points are awarded (only after day complete)
     if (todayValid && !alreadyProcessedToday) {
       dailyCompletions.add(todayKey);
       await _saveDailyCompletions(prefs, userId, dailyCompletions);
@@ -209,6 +214,12 @@ class GamificationService {
     final challenges = <Challenge>[];
 
     // Daily Challenge: Stay under limit today
+    // During the day show progress, only mark complete after day ends
+    final dailyProgress = dailyLimit > 0 
+        ? (1 - (todaySpent / dailyLimit)).clamp(0.0, 1.0) 
+        : 0.0;
+    final dayComplete = current.hour >= 18 || DateTime.now().day != current.day;
+    
     challenges.add(Challenge(
       id: 'daily_${_dateKey(current)}',
       title: 'Stay under ₹$dailyLimit today',
@@ -216,9 +227,8 @@ class GamificationService {
           'Keep today spending within your daily budget of ₹$dailyLimit.',
       targetAmount: dailyLimit,
       rewardPoints: 20,
-      progress:
-          todayValid ? 1.0 : (1 - (todaySpent / dailyLimit)).clamp(0.0, 1.0),
-      isCompleted: todayValid,
+      progress: dayComplete ? (todayValid ? 1.0 : 0.0) : dailyProgress,
+      isCompleted: dayComplete && todayValid,
       challengeType: ChallengeType.daily,
     ));
 
@@ -228,26 +238,37 @@ class GamificationService {
     final weekEnd = weekStart.add(const Duration(days: 7));
     final weekSpent = _calculateWeekSpent(expenses, weekStart, weekEnd);
     
-    // Calculate weekly budget based on daily limit for each day in the week
-    final now = DateTime.now();
+    // Calculate weekly budget - sum of daily limits for past days in week
+    final actualNow = DateTime.now();
     int weeklyBudget = 0;
+    
     for (int i = 0; i < 7; i++) {
       final day = weekStart.add(Duration(days: i));
-      if (day.isBefore(now) || (day.year == now.year && day.month == now.month && day.day == now.day)) {
-        final daysRemaining = cycleEnd.difference(day).inDays;
-        if (daysRemaining > 0) {
-          final dayLimit = (remaining / daysRemaining).floor();
-          weeklyBudget += dayLimit > 0 ? dayLimit : 1;
-        } else {
-          weeklyBudget += remaining > 0 ? remaining : 0;
-        }
+      final dayStart = DateTime(day.year, day.month, day.day);
+      final nowDayStart = DateTime(actualNow.year, actualNow.month, actualNow.day);
+      
+      // Count only past days (including today if before current time or after 6 PM)
+      final isPastDay = dayStart.isBefore(nowDayStart); 
+      final isTodayAndComplete = dayStart.isAtSameMomentAs(nowDayStart) && actualNow.hour >= 18;
+      
+      if (isPastDay || isTodayAndComplete) {
+        weeklyBudget += dailyLimit;
       }
     }
     
-    final weeklySaved = (weeklyBudget - weekSpent).clamp(0, 1000000);
-    final weeklyProgress = weeklyTarget > 0 
-        ? (weeklySaved / weeklyTarget).clamp(0.0, 1.0) 
+    // Weekly saved = weekly budget - actual week spent
+    final weeklySaved = (weeklyBudget - weekSpent).clamp(0, weeklyBudget);
+    
+    // Progress based on savings vs target
+    final weeklyProgress = weeklyTarget > 0 && weeklyBudget > 0
+        ? (weeklySaved / weeklyTarget).clamp(0.0, 1.0)
         : 0.0;
+    
+    // Week is complete on Sunday after 6 PM or next week
+    final weekComplete = current.weekday == DateTime.sunday && actualNow.hour >= 18;
+    final weeklyCompleted = weekComplete 
+        ? weeklySaved >= weeklyTarget 
+        : false;
 
     challenges.add(Challenge(
       id: 'weekly_${_weekKey(current)}',
@@ -256,7 +277,7 @@ class GamificationService {
       targetAmount: weeklyTarget,
       rewardPoints: 40,
       progress: weeklyProgress,
-      isCompleted: weeklySaved >= weeklyTarget,
+      isCompleted: weeklyCompleted,
       challengeType: ChallengeType.weekly,
     ));
 

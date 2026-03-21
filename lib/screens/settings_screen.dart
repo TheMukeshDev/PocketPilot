@@ -173,9 +173,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
                 child: Text(
-                  'SMS Auto-Track Approval Mode',
+                  'Auto-Track Mode',
                   style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
@@ -183,6 +183,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               for (final mode in SmsApprovalMode.values)
                 RadioListTile<SmsApprovalMode>(
+                  dense: true,
                   value: mode,
                   groupValue: _smsApprovalMode,
                   title: Text(mode.label),
@@ -194,7 +195,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Navigator.of(ctx).pop(value);
                   },
                 ),
-              const SizedBox(height: 8),
             ],
           ),
         );
@@ -223,19 +223,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) => AlertDialog(
-          title: const Text('Budget Cycle Start Date'),
-          titlePadding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-          contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-          actionsPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-          content: SmartDateSelector(
-            selectedDate: selectedDate,
-            onDateSelected: (date) {
-              setModalState(() {
-                selectedDate = date;
-              });
-            },
-            label: 'Choose which date your budget cycle should start',
+          title: const Text('Budget Cycle Start'),
+          titlePadding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+          contentPadding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+          actionsPadding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SmartDateSelector(
+              selectedDate: selectedDate,
+              onDateSelected: (date) {
+                setModalState(() {
+                  selectedDate = date;
+                });
+              },
+              label: 'Select start date',
+            ),
           ),
           actions: [
             TextButton(
@@ -613,31 +616,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           // ── SMS Tracking ─────────────────────────────────────────────
           const _SectionHeader(label: 'SMS Tracking'),
-          ListTile(
-            leading: CircleAvatar(
-              backgroundColor: colorScheme.tertiaryContainer,
-              child: Icon(
-                Icons.sms_rounded,
-                color: colorScheme.onTertiaryContainer,
-              ),
-            ),
-            title: const Text('Auto-Track Approval Mode'),
-            subtitle: Text(_smsApprovalMode.description),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Column(
               children: [
-                Text(
-                  _smsApprovalMode.label,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: colorScheme.primary,
-                    fontWeight: FontWeight.w600,
+                ListTile(
+                  leading: Icon(
+                    Icons.sms_rounded,
+                    color: colorScheme.tertiary,
                   ),
+                  title: const Text('Auto-Track'),
+                  subtitle: Text(_smsApprovalMode.description),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: colorScheme.tertiaryContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _smsApprovalMode.label,
+                      style: textTheme.labelMedium?.copyWith(
+                        color: colorScheme.onTertiaryContainer,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  onTap: _openSmsApprovalModePicker,
                 ),
-                const SizedBox(width: 4),
-                const Icon(Icons.chevron_right_rounded),
               ],
             ),
-            onTap: _openSmsApprovalModePicker,
           ),
 
           // ── Notifications ────────────────────────────────────────────

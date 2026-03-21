@@ -21,22 +21,22 @@ extension SmsApprovalModeX on SmsApprovalMode {
   String get label {
     switch (this) {
       case SmsApprovalMode.askEveryTime:
-        return 'Ask Every Time';
+        return 'Ask';
       case SmsApprovalMode.alwaysApprove:
-        return 'Always Approve';
+        return 'Auto';
       case SmsApprovalMode.alwaysAddDirectly:
-        return 'Always Add Directly';
+        return 'Direct';
     }
   }
 
   String get description {
     switch (this) {
       case SmsApprovalMode.askEveryTime:
-        return 'Show confirmation dialog for each detected transaction SMS.';
+        return 'Confirm each SMS expense';
       case SmsApprovalMode.alwaysApprove:
-        return 'Auto-approve detected SMS and add expense with parsed values.';
+        return 'Auto-add after approval';
       case SmsApprovalMode.alwaysAddDirectly:
-        return 'Skip review and add detected SMS expenses directly.';
+        return 'Add without review';
     }
   }
 }
