@@ -160,41 +160,52 @@ class GamificationService {
         final progress =
             await _loadChallengeProgress(prefs, userId, challenge.id);
         if (!progress.isCompleted) {
-          final savedAmt = _calculateSavedAmount(challenge, todaySpent, yesterdaySpent);
-          newlyCompleted.add(ChallengeCompletion(
+          // Additional verification: ensure challenge was actually completed
+          final isReallyCompleted = _verifyChallengeCompletion(
             challenge: challenge,
-            pointsEarned: challenge.rewardPoints,
-            savedAmount: savedAmt,
-          ));
-
-          // Log to points history
-          await _logPointsHistory(
-            userId: userId,
-            challenge: challenge,
-            pointsEarned: challenge.rewardPoints,
-            savedAmount: savedAmt,
-            earnedAt: current,
+            expenses: expenses,
+            todaySpent: todaySpent,
+            yesterdaySpent: yesterdaySpent,
+            dailyLimit: dailyLimit,
           );
+          
+          if (isReallyCompleted) {
+            final savedAmt = _calculateSavedAmount(challenge, todaySpent, yesterdaySpent);
+            newlyCompleted.add(ChallengeCompletion(
+              challenge: challenge,
+              pointsEarned: challenge.rewardPoints,
+              savedAmount: savedAmt,
+            ));
 
-          // Mark as completed in local SP + MongoDB
-          final updatedProgress = ChallengeProgress(
-            challengeId: challenge.id,
-            currentProgress: challenge.targetAmount,
-            target: challenge.targetAmount,
-            isCompleted: true,
-            lastUpdatedDate: current,
-          );
+            // Log to points history
+            await _logPointsHistory(
+              userId: userId,
+              challenge: challenge,
+              pointsEarned: challenge.rewardPoints,
+              savedAmount: savedAmt,
+              earnedAt: current,
+            );
 
-          await _saveChallengeProgress(
-            prefs,
-            userId,
-            updatedProgress,
-          );
+            // Mark as completed in local SP + MongoDB
+            final updatedProgress = ChallengeProgress(
+              challengeId: challenge.id,
+              currentProgress: challenge.targetAmount,
+              target: challenge.targetAmount,
+              isCompleted: true,
+              lastUpdatedDate: current,
+            );
 
-          await MongoGamificationRepository.instance.saveChallengeProgress(
-            userId,
-            updatedProgress,
-          );
+            await _saveChallengeProgress(
+              prefs,
+              userId,
+              updatedProgress,
+            );
+
+            await MongoGamificationRepository.instance.saveChallengeProgress(
+              userId,
+              updatedProgress,
+            );
+          }
         }
       }
     }
@@ -303,31 +314,35 @@ class GamificationService {
       challengeType: ChallengeType.daily,
     ));
 
-    // Weekly Challenge: Save ₹300
+    // Weekly Challenge: Save ₹300 over 7 days
     const weeklyTarget = 300;
-    final weekStart = current.subtract(Duration(days: current.weekday - 1));
-    final weekEnd = weekStart.add(const Duration(days: 7));
-    final weekSpent = _calculateWeekSpent(expenses, weekStart, weekEnd);
+    final currentDate = DateTime(current.year, current.month, current.day);
     
-    // Calculate weekly budget - sum of daily limits for all days in week
-    final int weeklyBudget = dailyLimit * 7;
+    // Calculate spending for each of the last 7 days
+    int totalSaved = 0;
+    int daysUnderBudget = 0;
     
-    // Calculate actual savings: budget minus what was spent
-    final weeklySaved = (weeklyBudget - weekSpent).clamp(0, weeklyBudget);
-    
-    // Calculate progress as a ratio of saved vs target
-    double weeklyProgress = 0.0;
-    if (weeklyTarget > 0) {
-      weeklyProgress = (weeklySaved / weeklyTarget).clamp(0.0, 1.0);
+    for (int i = 0; i < 7; i++) {
+      final day = currentDate.subtract(Duration(days: i));
+      final daySpent = _calculateDaySpent(expenses, day);
+      final daySaved = (dailyLimit - daySpent).clamp(0, dailyLimit);
+      
+      if (daySpent <= dailyLimit) {
+        daysUnderBudget++;
+        totalSaved += daySaved;
+      }
     }
     
-    // Week is completed only when saved amount reaches target
-    final weeklyCompleted = weeklySaved >= weeklyTarget;
+    // Calculate progress based on days under budget out of 7 days
+    final double weeklyProgress = (daysUnderBudget / 7).clamp(0.0, 1.0);
+    
+    // Week is completed only when: all 7 days saved AND total savings >= target
+    final weeklyCompleted = daysUnderBudget >= 7 && totalSaved >= weeklyTarget;
 
     challenges.add(Challenge(
       id: 'weekly_${_weekKey(current)}',
       title: 'Save ₹$weeklyTarget this week',
-      description: 'Stay under weekly budget and save at least ₹$weeklyTarget.',
+      description: 'Stay under daily budget for all 7 days to earn ₹$weeklyTarget in savings.',
       targetAmount: weeklyTarget,
       rewardPoints: 40,
       progress: weeklyProgress,
@@ -353,6 +368,47 @@ class GamificationService {
     ));
 
     return challenges;
+  }
+
+  bool _verifyChallengeCompletion({
+    required Challenge challenge,
+    required List<Expense> expenses,
+    required int todaySpent,
+    required int yesterdaySpent,
+    int? dailyLimit,
+  }) {
+    // Progress must be 100% to award points
+    if (challenge.progress < 1.0) {
+      return false;
+    }
+    
+    switch (challenge.challengeType) {
+      case ChallengeType.daily:
+        return todaySpent <= challenge.targetAmount;
+      case ChallengeType.weekly:
+        // For weekly, verify all 7 days saved and total >= target
+        // Use dailyLimit from parameters (default to 500 if not provided)
+        final effectiveDailyLimit = dailyLimit ?? 500;
+        final currentDate = DateTime.now();
+        final currentDateOnly = DateTime(currentDate.year, currentDate.month, currentDate.day);
+        int totalSaved = 0;
+        int daysUnderBudget = 0;
+        
+        for (int i = 0; i < 7; i++) {
+          final day = currentDateOnly.subtract(Duration(days: i));
+          final daySpent = _calculateDaySpent(expenses, day);
+          
+          if (daySpent <= effectiveDailyLimit) {
+            daysUnderBudget++;
+            totalSaved += (effectiveDailyLimit - daySpent).clamp(0, effectiveDailyLimit);
+          }
+        }
+        
+        // Check: all 7 days under budget AND saved >= target
+        return daysUnderBudget >= 7 && totalSaved >= challenge.targetAmount;
+      case ChallengeType.streak:
+        return challenge.progress >= 1.0;
+    }
   }
 
   int _calculateWeekSpent(

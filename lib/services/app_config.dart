@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AppConfig {
@@ -24,8 +25,35 @@ class AppConfig {
     try {
       await dotenv.load(fileName: '.env');
     } catch (_) {
-      // Missing local env file should not prevent app startup.
+      try {
+        final manifestContent = await rootBundle.loadString('AssetManifest.json');
+        if (manifestContent.contains('.env')) {
+          final asset = await rootBundle.loadString('.env');
+          dotenv.env.addAll(_parseEnvFile(asset));
+        }
+      } catch (_) {}
     }
+  }
+
+  static Map<String, String> _parseEnvFile(String content) {
+    final result = <String, String>{};
+    for (final line in content.split('\n')) {
+      final trimmed = line.trim();
+      if (trimmed.isEmpty || trimmed.startsWith('#')) continue;
+      final idx = trimmed.indexOf('=');
+      if (idx > 0) {
+        final key = trimmed.substring(0, idx).trim();
+        var value = trimmed.substring(idx + 1).trim();
+        if (value.startsWith('"') && value.endsWith('"')) {
+          value = value.substring(1, value.length - 1);
+        }
+        if (value.startsWith("'") && value.endsWith("'")) {
+          value = value.substring(1, value.length - 1);
+        }
+        result[key] = value;
+      }
+    }
+    return result;
   }
 
   static bool get enableDemoLogin => _boolValue(
@@ -48,11 +76,11 @@ class AppConfig {
       return configured;
     }
 
-    if (_googleWebClientIdFallback.trim().isEmpty) {
-      return null;
+    if (_googleWebClientIdFallback.trim().isNotEmpty) {
+      return _googleWebClientIdFallback.trim();
     }
 
-    return _googleWebClientIdFallback.trim();
+    return null;
   }
 
   static String? get geminiApiKey {
@@ -61,11 +89,11 @@ class AppConfig {
       return configured;
     }
 
-    if (_geminiApiKeyFallback.trim().isEmpty) {
-      return null;
+    if (_geminiApiKeyFallback.trim().isNotEmpty) {
+      return _geminiApiKeyFallback.trim();
     }
 
-    return _geminiApiKeyFallback.trim();
+    return null;
   }
 
   static String? get mongoUri {
@@ -91,15 +119,11 @@ class AppConfig {
   }
 
   static String? _stringValue(String key) {
-    try {
-      final value = dotenv.maybeGet(key)?.trim();
-      if (value == null || value.isEmpty) {
-        return null;
-      }
-      return value;
-    } catch (_) {
+    final value = dotenv.maybeGet(key);
+    if (value == null || value.trim().isEmpty) {
       return null;
     }
+    return value.trim();
   }
 
   static bool _boolValue(
@@ -116,7 +140,7 @@ class AppConfig {
 
   static String? get firebaseApiKey {
     final value = _stringValue('FIREBASE_API_KEY');
-    if (value != null) return value;
+    if (value != null && value.isNotEmpty) return value;
     
     final envValue = const String.fromEnvironment('FIREBASE_API_KEY');
     return envValue.isNotEmpty ? envValue : null;
@@ -124,7 +148,7 @@ class AppConfig {
 
   static String? get firebaseAppId {
     final value = _stringValue('FIREBASE_APP_ID');
-    if (value != null) return value;
+    if (value != null && value.isNotEmpty) return value;
     
     final envValue = const String.fromEnvironment('FIREBASE_APP_ID');
     return envValue.isNotEmpty ? envValue : null;
@@ -132,7 +156,7 @@ class AppConfig {
 
   static String? get firebaseMessagingSenderId {
     final value = _stringValue('FIREBASE_MESSAGING_SENDER_ID');
-    if (value != null) return value;
+    if (value != null && value.isNotEmpty) return value;
     
     final envValue = const String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID');
     return envValue.isNotEmpty ? envValue : null;
@@ -140,7 +164,7 @@ class AppConfig {
 
   static String? get firebaseProjectId {
     final value = _stringValue('FIREBASE_PROJECT_ID');
-    if (value != null) return value;
+    if (value != null && value.isNotEmpty) return value;
     
     final envValue = const String.fromEnvironment('FIREBASE_PROJECT_ID');
     return envValue.isNotEmpty ? envValue : null;
@@ -148,16 +172,25 @@ class AppConfig {
 
   static String? get firebaseStorageBucket {
     final value = _stringValue('FIREBASE_STORAGE_BUCKET');
-    if (value != null) return value;
+    if (value != null && value.isNotEmpty) return value;
     
     final envValue = const String.fromEnvironment('FIREBASE_STORAGE_BUCKET');
     return envValue.isNotEmpty ? envValue : null;
   }
 
-  static bool get isFirebaseConfigured =>
-      firebaseApiKey != null &&
-      firebaseAppId != null &&
-      firebaseMessagingSenderId != null &&
-      firebaseProjectId != null &&
-      firebaseStorageBucket != null;
+  static bool get isFirebaseConfigured {
+    final apiKey = firebaseApiKey;
+    final appId = firebaseAppId;
+    final senderId = firebaseMessagingSenderId;
+    final projectId = firebaseProjectId;
+    final bucket = firebaseStorageBucket;
+    
+    final configured = apiKey != null &&
+        appId != null &&
+        senderId != null &&
+        projectId != null &&
+        bucket != null;
+    
+    return configured;
+  }
 }

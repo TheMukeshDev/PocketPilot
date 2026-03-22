@@ -33,6 +33,21 @@ class AuthService {
     return false;
   }
 
+  bool get isFirebaseConfigured => AppConfig.isFirebaseConfigured;
+
+  String get firebaseStatus {
+    if (AppConfig.isFirebaseConfigured) {
+      return 'Firebase configured ✓';
+    }
+    final missing = <String>[];
+    if (AppConfig.firebaseApiKey == null) missing.add('API_KEY');
+    if (AppConfig.firebaseAppId == null) missing.add('APP_ID');
+    if (AppConfig.firebaseMessagingSenderId == null) missing.add('SENDER_ID');
+    if (AppConfig.firebaseProjectId == null) missing.add('PROJECT_ID');
+    if (AppConfig.firebaseStorageBucket == null) missing.add('STORAGE_BUCKET');
+    return 'Firebase missing: ${missing.join(", ")}';
+  }
+
   static String get demoEmail => AppConfig.demoEmail ?? '';
 
   static String get demoPassword => AppConfig.demoPassword ?? '';
@@ -246,6 +261,12 @@ class AuthService {
   }
 
   Future<AppUser> signInWithGoogle() async {
+    if (!AppConfig.isFirebaseConfigured) {
+      throw const _AuthFailedException(
+        'Firebase is not configured. Please check your .env file and ensure all FIREBASE_* variables are set correctly.',
+      );
+    }
+
     await initialize();
 
     try {

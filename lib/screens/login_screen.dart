@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/app_config.dart';
 import '../services/app_logger.dart';
 import '../services/auth_service.dart';
 import 'home_screen.dart';
@@ -45,6 +46,59 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showFirebaseStatus() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Firebase Status'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _FirebaseStatusRow('Configured', AuthService.instance.isFirebaseConfigured ? 'Yes ✓' : 'No ✗'),
+            _FirebaseStatusRow('API Key', AppConfig.firebaseApiKey != null ? 'Set ✓' : 'Missing ✗'),
+            _FirebaseStatusRow('App ID', AppConfig.firebaseAppId != null ? 'Set ✓' : 'Missing ✗'),
+            _FirebaseStatusRow('Sender ID', AppConfig.firebaseMessagingSenderId != null ? 'Set ✓' : 'Missing ✗'),
+            _FirebaseStatusRow('Project ID', AppConfig.firebaseProjectId != null ? 'Set ✓' : 'Missing ✗'),
+            _FirebaseStatusRow('Storage Bucket', AppConfig.firebaseStorageBucket != null ? 'Set ✓' : 'Missing ✗'),
+            _FirebaseStatusRow('Google Client ID', AppConfig.googleWebClientId != null ? 'Set ✓' : 'Missing ✗'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDebugInfo() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Debug Info'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Firebase Configured: ${AuthService.instance.isFirebaseConfigured}'),
+            Text('Demo Login Enabled: ${AuthService.isDemoLoginEnabled}'),
+            Text('API Key: ${AppConfig.firebaseApiKey?.substring(0, 10) ?? "null"}...'),
+            Text('Project: ${AppConfig.firebaseProjectId ?? "null"}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _submitEmailAuth() async {
@@ -202,26 +256,28 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // ── Branding ──────────────────────────────────────────
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-                  child: Icon(
-                    Icons.account_balance_wallet_rounded,
-                    size: 44,
-                    color: colorScheme.primary,
-                  ),
-                ),
+        child: Stack(
+          children: [
+            Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // ── Branding ──────────────────────────────────────────
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                      child: Icon(
+                        Icons.account_balance_wallet_rounded,
+                        size: 44,
+                        color: colorScheme.primary,
+                      ),
+                    ),
                 const SizedBox(height: 14),
                 Text(
                   'PocketPilot',
@@ -476,10 +532,29 @@ class _LoginScreenState extends State<LoginScreen> {
               ],
             ),
           ),
-        ),
+            ),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: IconButton(
+              onPressed: _showFirebaseStatus,
+              icon: Icon(
+                AuthService.instance.isFirebaseConfigured
+                    ? Icons.check_circle
+                    : Icons.warning,
+                color: AuthService.instance.isFirebaseConfigured
+                    ? Colors.green
+                    : Colors.orange,
+                size: 20,
+              ),
+              tooltip: 'Firebase Status',
+            ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 // Simple Google "G" logo drawn with Text (no asset needed)
@@ -505,3 +580,32 @@ class _GoogleLogo extends StatelessWidget {
     );
   }
 }
+
+class _FirebaseStatusRow extends StatelessWidget {
+  const _FirebaseStatusRow(this.label, this.value);
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final isSet = value.contains('✓');
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label),
+          Text(
+            value,
+            style: TextStyle(
+              color: isSet ? Colors.green : Colors.red,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
