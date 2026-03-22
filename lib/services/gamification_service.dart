@@ -16,13 +16,10 @@ class GamificationService {
   static const String _dailyCompletionsKeyPrefix = 'daily_completions_';
   static const String _gamificationTable = 'gamification_data';
 
-  static const int dailyRewardPoints = 20;
-  static const int weeklyRewardPoints = 40;
-  static const int monthlyRewardPoints = 60;
-  static const int streakRewardPoints = 60;
-  static const int weeklyStreakBonus = 50;
+  static const int dailyRewardPoints = 1;
+  static const int monthlyRewardPoints = 30;
+  static const int streakRewardPoints = 10;
 
-  static const int weeklyTarget = 300;
   static const int monthlyTarget = 500;
 
   Database? _gamificationDb;
@@ -39,7 +36,7 @@ class GamificationService {
 
     return openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE $_gamificationTable (
@@ -52,57 +49,18 @@ class GamificationService {
             PRIMARY KEY (user_id, challenge_id, cycle_key, data_type)
           )
         ''');
-        await db.execute('''
-          CREATE TABLE points_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT NOT NULL,
-            challenge_id TEXT NOT NULL,
-            cycle_key TEXT NOT NULL,
-            challenge_type TEXT NOT NULL,
-            title TEXT NOT NULL,
-            description TEXT NOT NULL,
-            points_earned INTEGER NOT NULL,
-            saved_amount INTEGER NOT NULL,
-            earned_at TEXT NOT NULL,
-            UNIQUE(user_id, challenge_id, cycle_key)
-          )
-        ''');
       },
       onUpgrade: (db, oldVersion, newVersion) async {
-        if (oldVersion < 2) {
-          await db.execute('''
-            CREATE TABLE IF NOT EXISTS points_history (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              user_id TEXT NOT NULL,
-              challenge_id TEXT NOT NULL,
-              cycle_key TEXT NOT NULL,
-              challenge_type TEXT NOT NULL,
-              title TEXT NOT NULL,
-              description TEXT NOT NULL,
-              points_earned INTEGER NOT NULL,
-              saved_amount INTEGER NOT NULL,
-              earned_at TEXT NOT NULL,
-              UNIQUE(user_id, challenge_id, cycle_key)
-            )
-          ''');
+        if (oldVersion < 4) {
+          try {
+            await db.execute('DROP TABLE IF EXISTS points_history');
+          } catch (_) {}
         }
       },
     );
   }
 
   String _getDailyCycleKey(DateTime date) => 'daily_${_dateKey(date)}';
-
-  String _getWeeklyCycleKey(DateTime date, {DateTime? cycleStart}) {
-    if (cycleStart != null) {
-      final daysSinceCycleStart = date.difference(cycleStart).inDays;
-      final weekNumber = (daysSinceCycleStart ~/ 7) + 1;
-      final monthPart = '${date.year}-${date.month.toString().padLeft(2, '0')}';
-      return 'weekly_${monthPart}_W$weekNumber';
-    }
-    final dayOfYear = date.difference(DateTime(date.year, 1, 1)).inDays + 1;
-    final week = ((dayOfYear - date.weekday + 10) / 7).floor();
-    return 'weekly_${date.year}-W${week.toString().padLeft(2, '0')}';
-  }
 
   String _getMonthlyCycleKey(DateTime date, {DateTime? cycleStart}) {
     if (cycleStart != null) {
@@ -148,10 +106,11 @@ class GamificationService {
     final alreadyProcessedToday = dailyCompletions.contains(todayKey);
 
     final todaySpent = _calculateDaySpent(expenses, current);
+    final todayHasExpense = _hasExpenseForDay(expenses, current);
 
     final actualNow = DateTime.now();
     final dayComplete = actualNow.hour >= 18 || actualNow.day != current.day;
-    final todayValid = dayComplete && todaySpent <= dailyLimit;
+    final todayValid = dayComplete && todayHasExpense;
 
     final updatedGamification = _updateStreakAndPoints(
       userGamification,
@@ -241,14 +200,6 @@ class GamificationService {
 
     challenges.add(_generateDailyChallenge(current, todaySpent, dailyLimit));
 
-    final weeklySavings = _calculateWeeklySavings(
-      expenses: expenses,
-      current: current,
-      dailyLimit: dailyLimit,
-      cycleStart: effectiveCycleStart,
-    );
-    challenges.add(_generateWeeklyChallenge(current, weeklySavings, cycleStart: effectiveCycleStart));
-
     final monthlySavings = _calculateMonthlySavings(
       expenses: expenses,
       current: current,
@@ -281,60 +232,6 @@ class GamificationService {
       challengeType: ChallengeType.daily,
       cycleKey: _getDailyCycleKey(current),
       currentSavings: todayValid ? (dailyLimit - todaySpent).clamp(0, dailyLimit) : 0,
-    );
-  }
-
-  SavingsCalculation _calculateWeeklySavings({
-    required List<Expense> expenses,
-    required DateTime current,
-    required int dailyLimit,
-    required DateTime cycleStart,
-  }) {
-    final currentDateOnly = DateTime(current.year, current.month, current.day);
-    
-    int totalSaved = 0;
-    int daysUnderBudget = 0;
-    final dailyBreakdown = <String, int>{};
-    
-    for (int i = 0; i < 7; i++) {
-      final day = currentDateOnly.subtract(Duration(days: i));
-      final daySpent = _calculateDaySpent(expenses, day);
-      final daySaved = (dailyLimit - daySpent).clamp(0, dailyLimit);
-      
-      dailyBreakdown[_dateKey(day)] = daySaved;
-      totalSaved += daySaved;
-      
-      if (daySpent <= dailyLimit) {
-        daysUnderBudget++;
-      }
-    }
-
-    return SavingsCalculation(
-      totalSavings: totalSaved,
-      daysUnderBudget: daysUnderBudget,
-      totalDays: 7,
-      cycleStart: currentDateOnly.subtract(const Duration(days: 6)),
-      cycleEnd: currentDateOnly,
-      dailyBreakdown: dailyBreakdown,
-    );
-  }
-
-  Challenge _generateWeeklyChallenge(DateTime current, SavingsCalculation savings, {DateTime? cycleStart}) {
-    final weeklyId = _getWeeklyCycleKey(current, cycleStart: cycleStart);
-    final progress = (savings.totalSavings / weeklyTarget).clamp(0.0, 1.0);
-    final isCompleted = savings.totalSavings >= weeklyTarget && savings.isFullySaved;
-
-    return Challenge(
-      id: weeklyId,
-      title: 'Save ₹$weeklyTarget this week',
-      description: 'Stay under daily budget for all 7 days to earn ₹$weeklyTarget in savings.',
-      targetAmount: weeklyTarget,
-      rewardPoints: weeklyRewardPoints,
-      progress: progress,
-      isCompleted: isCompleted,
-      challengeType: ChallengeType.weekly,
-      cycleKey: weeklyId,
-      currentSavings: savings.totalSavings,
     );
   }
 
@@ -401,8 +298,8 @@ class GamificationService {
 
     return Challenge(
       id: _getStreakCycleKey(current),
-      title: 'Stay under limit for $streakTarget days',
-      description: 'Maintain spending under daily limit for $streakTarget consecutive days.',
+      title: 'Track expenses for $streakTarget days',
+      description: 'Add at least one bill or payment each day for $streakTarget consecutive days.',
       targetAmount: streakTarget,
       rewardPoints: streakRewardPoints,
       progress: streakProgress,
@@ -422,11 +319,16 @@ class GamificationService {
         .fold(0, (sum, e) => sum + e.amount);
   }
 
+  bool _hasExpenseForDay(List<Expense> expenses, DateTime date) {
+    final dayStart = DateTime(date.year, date.month, date.day);
+    final dayEnd = dayStart.add(const Duration(days: 1));
+
+    return expenses.any((e) => !e.date.isBefore(dayStart) && e.date.isBefore(dayEnd));
+  }
+
   int _calculateSavedAmount(Challenge challenge, List<Expense> expenses, DateTime current, int dailyLimit, DateTime? cycleStart) {
     switch (challenge.challengeType) {
       case ChallengeType.daily:
-        return challenge.currentSavings;
-      case ChallengeType.weekly:
         return challenge.currentSavings;
       case ChallengeType.monthly:
         return challenge.currentSavings;
@@ -458,10 +360,10 @@ class GamificationService {
       points += dailyRewardPoints;
 
       if (updatedStreak > 0 && updatedStreak % 7 == 0) {
-        points += weeklyStreakBonus;
-        _logDebug('weekly_streak_bonus', {
+        points += streakRewardPoints;
+        _logDebug('streak_bonus', {
           'streak': updatedStreak,
-          'bonusPoints': weeklyStreakBonus,
+          'bonusPoints': streakRewardPoints,
         });
       }
     }
@@ -570,101 +472,6 @@ class GamificationService {
     _logDebug('gamification_reset', {'userId': userId});
   }
 
-  Future<void> logPointsHistory({
-    required String userId,
-    required Challenge challenge,
-    required int pointsEarned,
-    required int savedAmount,
-    required DateTime earnedAt,
-  }) async {
-    try {
-      final db = await gamificationDatabase;
-      await db.insert(
-        'points_history',
-        {
-          'user_id': userId,
-          'challenge_id': challenge.id,
-          'cycle_key': challenge.cycleKey,
-          'challenge_type': challenge.challengeType.name,
-          'title': challenge.title,
-          'description': challenge.description,
-          'points_earned': pointsEarned,
-          'saved_amount': savedAmount,
-          'earned_at': earnedAt.toIso8601String(),
-        },
-        conflictAlgorithm: ConflictAlgorithm.ignore,
-      );
-
-      _logDebug('points_history_logged', {
-        'userId': userId,
-        'challengeId': challenge.id,
-        'cycleKey': challenge.cycleKey,
-        'pointsEarned': pointsEarned,
-        'savedAmount': savedAmount,
-      });
-    } catch (e) {
-      _logDebug('points_history_error', {'error': e.toString()});
-    }
-  }
-
-  Future<List<PointsHistoryEntry>> getPointsHistory(String userId, {int limit = 50}) async {
-    try {
-      final db = await gamificationDatabase;
-      final results = await db.query(
-        'points_history',
-        where: 'user_id = ?',
-        whereArgs: [userId],
-        orderBy: 'earned_at DESC',
-        limit: limit,
-      );
-      
-      return results.map((row) => PointsHistoryEntry(
-        id: row['id'].toString(),
-        challengeId: row['challenge_id'] as String,
-        challengeType: ChallengeType.values.firstWhere(
-          (v) => v.name == row['challenge_type'],
-          orElse: () => ChallengeType.daily,
-        ),
-        title: row['title'] as String,
-        description: row['description'] as String,
-        pointsEarned: row['points_earned'] as int,
-        savedAmount: row['saved_amount'] as int,
-        earnedAt: DateTime.parse(row['earned_at'] as String),
-        cycleKey: row['cycle_key'] as String,
-      )).toList();
-    } catch (_) {
-      return [];
-    }
-  }
-
-  Future<bool> hasCompletedChallenge(String userId, String challengeId, String cycleKey) async {
-    try {
-      final db = await gamificationDatabase;
-      final result = await db.query(
-        'points_history',
-        where: 'user_id = ? AND challenge_id = ? AND cycle_key = ?',
-        whereArgs: [userId, challengeId, cycleKey],
-        limit: 1,
-      );
-      return result.isNotEmpty;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  Future<int> getTotalPointsFromHistory(String userId) async {
-    try {
-      final db = await gamificationDatabase;
-      final result = await db.rawQuery(
-        'SELECT SUM(points_earned) as total FROM points_history WHERE user_id = ?',
-        [userId],
-      );
-      return (result.first['total'] as num?)?.toInt() ?? 0;
-    } catch (_) {
-      return 0;
-    }
-  }
-
   Future<void> resetDailyCompletions({required String userId}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(_dailyCompletionsKey(userId), []);
@@ -706,33 +513,28 @@ class GamificationService {
     
     int currentStreak = 0;
     int bestStreak = 0;
-    final byDay = <String, int>{};
+    final daysWithExpense = <String>{};
     
     for (final expense in expenses) {
       final key = _dateKey(expense.date);
-      byDay[key] = (byDay[key] ?? 0) + expense.amount;
+      daysWithExpense.add(key);
     }
     
-    final sortedDays = byDay.keys.toList()..sort();
+    final sortedDays = daysWithExpense.toList()..sort();
     int tempStreak = 0;
     DateTime? previousDay;
     
     for (final dayKey in sortedDays) {
-      final dayTotal = byDay[dayKey] ?? 0;
       final dayDate = DateTime.parse(dayKey);
       
-      if (dayTotal <= dailyLimit) {
-        if (previousDay != null && dayDate.difference(previousDay).inDays == 1) {
-          tempStreak++;
-        } else {
-          tempStreak = 1;
-        }
-        
-        if (tempStreak > bestStreak) {
-          bestStreak = tempStreak;
-        }
+      if (previousDay != null && dayDate.difference(previousDay).inDays == 1) {
+        tempStreak++;
       } else {
-        tempStreak = 0;
+        tempStreak = 1;
+      }
+      
+      if (tempStreak > bestStreak) {
+        bestStreak = tempStreak;
       }
       
       previousDay = dayDate;
@@ -742,37 +544,22 @@ class GamificationService {
     for (var i = 0; i < 30; i++) {
       final day = DateTime(current.year, current.month, current.day).subtract(Duration(days: i));
       final dayKey = _dateKey(day);
-      final dayTotal = byDay[dayKey] ?? 0;
       
-      if (dayTotal <= dailyLimit) {
+      if (daysWithExpense.contains(dayKey)) {
         currentStreak++;
       } else {
         break;
       }
     }
     
-    final savings = _calculateWeeklySavings(
-      expenses: expenses,
-      current: current,
-      dailyLimit: dailyLimit,
-      cycleStart: DateTime(current.year, current.month, 1),
-    );
-    
     int totalPointsEarned = 0;
     
     for (final dayKey in sortedDays) {
-      final dayTotal = byDay[dayKey] ?? 0;
-      if (dayTotal <= dailyLimit) {
-        totalPointsEarned += dailyRewardPoints;
-      }
+      totalPointsEarned += dailyRewardPoints;
     }
     
     if (bestStreak > 0 && bestStreak % 7 == 0) {
-      totalPointsEarned += (bestStreak ~/ 7) * weeklyStreakBonus;
-    }
-    
-    if (savings.totalSavings >= weeklyTarget) {
-      totalPointsEarned += weeklyRewardPoints;
+      totalPointsEarned += streakRewardPoints;
     }
     
     if (currentStreak >= 7) {
@@ -783,8 +570,6 @@ class GamificationService {
       'totalPoints': totalPointsEarned,
       'currentStreak': currentStreak,
       'bestStreak': bestStreak,
-      'weeklySaved': savings.totalSavings,
-      'weeklyTarget': weeklyTarget,
       'calculatedAt': DateTime.now().toIso8601String(),
     };
     

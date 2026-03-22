@@ -5,7 +5,6 @@ import '../models/app_notification.dart';
 import '../services/auth_service.dart';
 import '../services/budget_cycle_preferences.dart';
 import '../services/date_cycle_service.dart';
-import '../services/gamification_service.dart';
 import '../services/notification_preferences_service.dart';
 import '../services/sms_tracking_preferences.dart';
 import '../services/theme_service.dart';
@@ -51,15 +50,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _rewardsPointsEnabled = true;
   bool _reminderNotificationsEnabled = true;
 
-  // Language list — extend when i18n is added.
-  static const List<_LangOption> _languages = [
-    _LangOption('English', 'en', '🇬🇧'),
-    _LangOption('हिन्दी', 'hi', '🇮🇳'),
-    _LangOption('தமிழ்', 'ta', '🇮🇳'),
-    _LangOption('తెలుగు', 'te', '🇮🇳'),
-  ];
-  String _selectedLang = 'en';
-
   @override
   void initState() {
     super.initState();
@@ -67,7 +57,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _rent = widget.rent;
     _budgetCycleStartDay = widget.budgetCycleStartDay;
     _smsApprovalMode = widget.smsApprovalMode;
-    _loadLangPref();
     _loadNotificationPreferences();
     ThemeService.instance.themeMode.addListener(_onThemeChanged);
   }
@@ -123,26 +112,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _onThemeChanged() {
     if (mounted)
       setState(() => _themeMode = ThemeService.instance.themeMode.value);
-  }
-
-  Future<void> _loadLangPref() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('app_language') ?? 'en';
-    if (mounted) setState(() => _selectedLang = saved);
-  }
-
-  Future<void> _saveLangPref(String code) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('app_language', code);
-    setState(() => _selectedLang = code);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Language set to ${_languages.firstWhere((l) => l.code == code).name}. Full support coming soon!',
-        ),
-      ),
-    );
   }
 
   Future<void> _setTheme(ThemeMode mode) async {
@@ -468,65 +437,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _resetGamification() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Reset Gamification?'),
-        content: const Text(
-          'This will reset all points, streaks, and challenge progress to zero. Your expenses will not be affected.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-              foregroundColor: Theme.of(ctx).colorScheme.onError,
-            ),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Reset'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    final userId = AuthService.instance.currentUser?.id ?? 'guest';
-    await GamificationService.instance.resetAllGamificationData(userId);
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Gamification data has been reset to zero.')),
-    );
-  }
-
-  Future<void> _recalculateGamification() async {
-    final userId = AuthService.instance.currentUser?.id ?? 'guest';
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Recalculating points from expenses...')),
-    );
-
-    final result = await GamificationService.instance.recalculateFromExpenses(
-      expenses: const [],
-      dailyLimit: 500,
-      userId: userId,
-    );
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Recalculated: ${result['totalPoints']} points, streak: ${result['currentStreak']} days',
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -634,43 +544,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
               ],
-            ),
-          ),
-
-          // ── Language ─────────────────────────────────────────────────
-          const _SectionHeader(label: 'Language'),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _languages.map((lang) {
-                final isSelected = _selectedLang == lang.code;
-                return ChoiceChip(
-                  avatar: Text(lang.flag, style: const TextStyle(fontSize: 16)),
-                  label: Text(lang.name),
-                  selected: isSelected,
-                  onSelected: (_) => _saveLangPref(lang.code),
-                  selectedColor: colorScheme.primaryContainer,
-                  labelStyle: TextStyle(
-                    fontWeight:
-                        isSelected ? FontWeight.w700 : FontWeight.normal,
-                    color: isSelected
-                        ? colorScheme.onPrimaryContainer
-                        : colorScheme.onSurface,
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            child: Text(
-              'More languages coming soon',
-              style: textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurface.withOpacity(0.5),
-                fontStyle: FontStyle.italic,
-              ),
             ),
           ),
 
@@ -825,46 +698,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onTap: _openBudgetCycleDialog,
           ),
 
-          // ── Gamification Reset ───────────────────────────────────────
-          const _SectionHeader(label: 'Gamification & Points'),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _resetGamification,
-                icon: const Icon(Icons.refresh_rounded),
-                label: const Text(
-                  'Reset Points & Challenges',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: _recalculateGamification,
-                icon: const Icon(Icons.calculate_rounded),
-                label: const Text('Recalculate from Expenses'),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-              ),
-            ),
-          ),
-
           // ── Account ──────────────────────────────────────────────────
           const _SectionHeader(label: 'Account'),
           Padding(
@@ -937,13 +770,6 @@ class _SectionHeader extends StatelessWidget {
       ),
     );
   }
-}
-
-class _LangOption {
-  const _LangOption(this.name, this.code, this.flag);
-  final String name;
-  final String code;
-  final String flag;
 }
 
 class _NotificationCategoryTile extends StatelessWidget {

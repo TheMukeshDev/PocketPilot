@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class AboutAppScreen extends StatelessWidget {
   const AboutAppScreen({super.key});
 
-  static const String _appVersion = '1.0.0';
+  static const String _appVersion = '1.0.1';
   static const String _appBuildNumber = '1';
 
   @override

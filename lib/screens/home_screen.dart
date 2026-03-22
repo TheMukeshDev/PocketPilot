@@ -24,11 +24,10 @@ import '../services/sms_expense_parser.dart';
 import '../services/sms_tracking_preferences.dart';
 import '../services/theme_service.dart';
 import '../widgets/alert_card.dart';
-import '../widgets/budget_card.dart';
+import '../widgets/budget_overview_card.dart';
 import '../widgets/empty_states.dart';
 import '../widgets/financial_health_card.dart';
 import '../widgets/home_header.dart';
-import '../widgets/points_history_card.dart';
 import '../widgets/main_bottom_nav.dart';
 import '../widgets/streak_savings_card.dart';
 import '../widgets/prediction_card.dart';
@@ -86,7 +85,6 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Challenge> _activeChallenges = const <Challenge>[];
   GamificationStats _gamificationStats = GamificationStats.empty;
   String? _recentlyCompletedChallengeId;
-  List<PointsHistoryEntry> _pointsHistory = [];
 
   // ── SMS auto-detection state ─────────────────────────────────────────────
   final Telephony _telephony = Telephony.instance;
@@ -739,29 +737,6 @@ class _HomeScreenState extends State<HomeScreen> {
         SnackBar(content: Text('🏅 Badge unlocked: $badge')),
       );
     }
-
-    await _loadPointsHistory();
-  }
-
-  Future<void> _loadPointsHistory() async {
-    final currentUser = AuthService.instance.currentUser;
-    final userId = widget.userId ?? currentUser?.id ?? 'guest';
-    
-    final history = await GamificationService.instance.getPointsHistory(userId);
-    
-    if (!mounted) return;
-    
-    setState(() {
-      _pointsHistory = history;
-    });
-  }
-
-  void _openPointsHistory() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PointsHistoryFullScreen(history: _pointsHistory),
-      ),
-    );
   }
 
   Future<void> _showChallengeCompletionDialog() async {
@@ -789,9 +764,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final savedAmount = challenge.challengeType == ChallengeType.daily
         ? (challenge.targetAmount - todaySpent).clamp(0, challenge.targetAmount)
-        : challenge.challengeType == ChallengeType.weekly
-            ? challenge.targetAmount
-            : _gamificationStats.currentStreak;
+        : _gamificationStats.currentStreak;
 
     await showDialog<void>(
       context: context,
@@ -1185,7 +1158,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           stats: _gamificationStats,
                           challenges: _activeChallenges,
                           onViewHistory: _openChallengeDashboard,
-                          onViewPointsLog: _openPointsHistory,
                         ),
                       const SizedBox(height: 4),
                       if (_activeChallenges.isEmpty)
@@ -1195,50 +1167,20 @@ class _HomeScreenState extends State<HomeScreen> {
                       ..._alertMessages.map(
                         (message) => AlertCard(message: message),
                       ),
-                      BudgetCard(
-                        title: 'Monthly Budget',
-                        value: '₹$_monthlyBudget',
-                        icon: Icons.account_balance_wallet_rounded,
+                      BudgetOverviewCard(
+                        monthlyBudget: _monthlyBudget,
+                        rent: _rent,
+                        totalSpent: totalSpent,
+                        todaySpent: todaySpent,
+                        remaining: remaining,
+                        dailyLimit: dailySpendingLimit,
                       ),
-                      BudgetCard(
-                        title: 'Fixed Rent',
-                        value: '₹$_rent',
-                        icon: Icons.home_work_rounded,
+                      const SizedBox(height: 10),
+                      DailySpendProgress(
+                        todaySpent: todaySpent,
+                        dailyLimit: dailySpendingLimit,
                       ),
-                      BudgetCard(
-                        title: 'Total Spent',
-                        value: '₹$totalSpent',
-                        icon: Icons.payments_rounded,
-                        backgroundColor: colorScheme.surfaceVariant,
-                      ),
-                      BudgetCard(
-                        title: 'Today Spend',
-                        value: '₹$todaySpent',
-                        icon: Icons.today_rounded,
-                        backgroundColor: todaySpent > dailySpendingLimit &&
-                                dailySpendingLimit > 0
-                            ? colorScheme.errorContainer
-                            : colorScheme.primaryContainer,
-                        valueColor: todaySpent > dailySpendingLimit &&
-                                dailySpendingLimit > 0
-                            ? colorScheme.onErrorContainer
-                            : colorScheme.onPrimaryContainer,
-                      ),
-                      BudgetCard(
-                        title: 'Left to Spend',
-                        value: '₹$remaining',
-                        icon: Icons.savings_rounded,
-                        valueColor: remaining < 0
-                            ? colorScheme.error
-                            : colorScheme.primary,
-                      ),
-                      BudgetCard(
-                        title: 'Daily Safe Limit',
-                        value: '₹$dailySpendingLimit',
-                        icon: Icons.calendar_today_rounded,
-                        backgroundColor: colorScheme.secondaryContainer,
-                        emphasize: true,
-                      ),
+                      const SizedBox(height: 10),
                       PredictionCard(prediction: _prediction),
                       const SizedBox(height: 8),
                       Card(
@@ -1724,7 +1666,7 @@ class _HowItWorksSheet extends StatelessWidget {
         icon: Icons.emoji_events_rounded,
         title: 'Savings Challenges',
         description:
-            'Complete daily, weekly, and streak challenges to earn points and unlock Bronze, Silver, and Gold badges.',
+            'Complete daily, monthly, and streak challenges to earn points and unlock Bronze, Silver, and Gold badges.',
       ),
       _HowItWorksStep(
         icon: Icons.cloud_sync_rounded,

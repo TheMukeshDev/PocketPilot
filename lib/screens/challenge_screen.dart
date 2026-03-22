@@ -155,7 +155,7 @@ class ChallengeScreen extends StatelessWidget {
                   const SizedBox(height: 10),
                   if (stats.badgesUnlocked.isEmpty)
                     Text(
-                      'No badges yet. Build a verified saving streak to unlock Bronze, Silver, and Gold Saver badges.',
+                      'No badges yet. Build a tracking streak to unlock Bronze, Silver, and Gold Saver badges.',
                       style: Theme.of(context).textTheme.bodySmall,
                     )
                   else
@@ -218,7 +218,7 @@ class ChallengeScreen extends StatelessWidget {
     if (stats.bestStreak >= 3) {
       return 'Great momentum! Bronze Saver unlocked — aim for Silver.';
     }
-    return 'Start small today. Every rupee saved grows your streak and points.';
+    return 'Start tracking today. Every bill added grows your streak and points.';
   }
 }
 
