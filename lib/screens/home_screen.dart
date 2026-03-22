@@ -25,10 +25,12 @@ import '../services/sms_tracking_preferences.dart';
 import '../services/theme_service.dart';
 import '../widgets/alert_card.dart';
 import '../widgets/budget_card.dart';
-import '../widgets/challenge_card.dart';
+import '../widgets/empty_states.dart';
 import '../widgets/financial_health_card.dart';
+import '../widgets/home_header.dart';
 import '../widgets/points_history_card.dart';
 import '../widgets/main_bottom_nav.dart';
+import '../widgets/streak_savings_card.dart';
 import '../widgets/prediction_card.dart';
 import '../widgets/sms_expense_dialog.dart';
 import '../widgets/spending_chart.dart';
@@ -1154,51 +1156,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 : ListView(
                     padding: const EdgeInsets.only(bottom: 128),
                     children: [
-                      Card(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 22,
-                                backgroundColor: colorScheme.primaryContainer,
-                                child: Icon(
-                                  Icons.person_rounded,
-                                  color: colorScheme.onPrimaryContainer,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Hi $greetingName 👋',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium
-                                          ?.copyWith(
-                                              fontWeight: FontWeight.w700),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Track smart, spend smarter.',
-                                      style:
-                                          Theme.of(context).textTheme.bodySmall,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              _StatusChip(
-                                isOnline: _isOnline,
-                                isSyncing: _isSyncing,
-                              ),
-                            ],
-                          ),
-                        ),
+                      HomeHeader(
+                        greetingName: greetingName,
+                        isOnline: _isOnline,
+                        isSyncing: _isSyncing,
                       ),
                       const SizedBox(height: 8),
                       _QuickActionsGrid(
@@ -1209,7 +1170,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         onExportPdf: _exportPdfReport,
                         onChallenges: _openChallengeDashboard,
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 8),
                       if (_smsDetectedCount > 0)
                         _SmsAutoTrackBanner(
                           detectedCount: _smsDetectedCount,
@@ -1219,168 +1180,18 @@ class _HomeScreenState extends State<HomeScreen> {
                         breakdown: _financialHealthScore,
                       ),
                       const SizedBox(height: 8),
-                      if (_activeChallenges.isNotEmpty) ...[
-                        Card(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.emoji_events_rounded,
-                                          color: Theme.of(context).colorScheme.primary,
-                                          size: 22,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'Savings Challenges',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleMedium
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Theme.of(context).colorScheme.primaryContainer,
-                                            borderRadius: BorderRadius.circular(999),
-                                          ),
-                                          child: Text(
-                                            '${_gamificationStats.totalPoints} pts',
-                                            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                                  color: Theme.of(context).colorScheme.onPrimaryContainer,
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Theme.of(context).colorScheme.tertiaryContainer,
-                                            borderRadius: BorderRadius.circular(999),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                Icons.local_fire_department_rounded,
-                                                color: Theme.of(context).colorScheme.tertiary,
-                                                size: 14,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                '${_gamificationStats.currentStreak}',
-                                                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                                      color: Theme.of(context).colorScheme.onTertiaryContainer,
-                                                      fontWeight: FontWeight.w700,
-                                                    ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                ..._activeChallenges.map(
-                                  (challenge) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 8),
-                                    child: ChallengeCard(
-                                      challenge: challenge,
-                                      highlightCompletion: _recentlyCompletedChallengeId ==
-                                          challenge.id,
-                                      onTap: _openChallengeDashboard,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    _ChallengeProgressChip(
-                                      type: ChallengeType.daily,
-                                      challenge: _activeChallenges.firstWhere(
-                                        (c) => c.challengeType == ChallengeType.daily,
-                                        orElse: () => _activeChallenges.first,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    _ChallengeProgressChip(
-                                      type: ChallengeType.weekly,
-                                      challenge: _activeChallenges.firstWhere(
-                                        (c) => c.challengeType == ChallengeType.weekly,
-                                        orElse: () => _activeChallenges.first,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    _ChallengeProgressChip(
-                                      type: ChallengeType.streak,
-                                      challenge: _activeChallenges.firstWhere(
-                                        (c) => c.challengeType == ChallengeType.streak,
-                                        orElse: () => _activeChallenges.first,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: OutlinedButton.icon(
-                                        onPressed: _openChallengeDashboard,
-                                        icon: const Icon(Icons.leaderboard_rounded, size: 18),
-                                        label: const Text('View History'),
-                                        style: OutlinedButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(vertical: 12),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: FilledButton.icon(
-                                        onPressed: _openPointsHistory,
-                                        icon: const Icon(Icons.history_rounded, size: 18),
-                                        label: const Text('Points Log'),
-                                        style: FilledButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(vertical: 12),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
+                      if (_activeChallenges.isNotEmpty)
+                        StreakSavingsCard(
+                          stats: _gamificationStats,
+                          challenges: _activeChallenges,
+                          onViewHistory: _openChallengeDashboard,
+                          onViewPointsLog: _openPointsHistory,
                         ),
-                      ],
+                      const SizedBox(height: 4),
+                      if (_activeChallenges.isEmpty)
+                        const ChallengeEmptyState(),
+                      if (_activeChallenges.isEmpty)
+                        const StreakEmptyState(),
                       ..._alertMessages.map(
                         (message) => AlertCard(message: message),
                       ),

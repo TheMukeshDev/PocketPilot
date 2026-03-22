@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'firebase_options.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'services/app_config.dart';
 import 'services/app_logger.dart';
 import 'services/auth_service.dart';
@@ -133,6 +134,13 @@ class MyApp extends StatelessWidget {
           themeMode: themeMode,
           theme: _buildAppTheme(Brightness.light),
           darkTheme: _buildAppTheme(Brightness.dark),
+          initialRoute: '/',
+          routes: {
+            '/': (context) => home ?? const _AuthGate(),
+            '/onboarding': (context) => const OnboardingScreen(),
+            '/home': (context) => const HomeScreen(),
+            '/login': (context) => const LoginScreen(),
+          },
           home: home ?? const _AuthGate(),
         );
       },
@@ -242,17 +250,32 @@ class _AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<_AuthGate> {
-  late final Future<void> _sessionFuture;
+  late final Future<_AuthGateResult> _sessionFuture;
 
   @override
   void initState() {
     super.initState();
-    _sessionFuture = AuthService.instance.restoreSession();
+    _sessionFuture = _checkAuthAndOnboarding();
+  }
+
+  Future<_AuthGateResult> _checkAuthAndOnboarding() async {
+    await AuthService.instance.restoreSession();
+    
+    if (AuthService.instance.currentUser == null) {
+      return _AuthGateResult(showLogin: true);
+    }
+    
+    final shouldShowOnboarding = await OnboardingScreen.shouldShow();
+    if (shouldShowOnboarding) {
+      return _AuthGateResult(showOnboarding: true);
+    }
+    
+    return _AuthGateResult(showHome: true);
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<void>(
+    return FutureBuilder<_AuthGateResult>(
       future: _sessionFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
@@ -261,12 +284,33 @@ class _AuthGateState extends State<_AuthGate> {
           );
         }
 
-        if (AuthService.instance.currentUser == null) {
+        final result = snapshot.data;
+        if (result == null) {
           return const LoginScreen();
+        }
+
+        if (result.showLogin) {
+          return const LoginScreen();
+        }
+
+        if (result.showOnboarding) {
+          return const OnboardingScreen();
         }
 
         return const HomeScreen();
       },
     );
   }
+}
+
+class _AuthGateResult {
+  const _AuthGateResult({
+    this.showLogin = false,
+    this.showOnboarding = false,
+    this.showHome = false,
+  });
+
+  final bool showLogin;
+  final bool showOnboarding;
+  final bool showHome;
 }

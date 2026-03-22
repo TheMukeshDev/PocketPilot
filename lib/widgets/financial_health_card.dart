@@ -13,6 +13,7 @@ class FinancialHealthCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _scoreColor(context, breakdown.totalScore);
+    final percentileText = _getPercentileText(breakdown.totalScore);
 
     return Card(
       shape: RoundedRectangleBorder(
@@ -35,71 +36,195 @@ class FinancialHealthCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Financial Health',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                      Text(
+                        breakdown.status,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: color,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Text(
-                    'Financial Health Score',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
+                    '${breakdown.totalScore}',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: color,
+                          fontWeight: FontWeight.w800,
                         ),
                   ),
                 ),
-                Text(
-                  '${breakdown.totalScore} / 100',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: color,
-                        fontWeight: FontWeight.w800,
-                      ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: breakdown.totalScore / 100,
+                minHeight: 8,
+                backgroundColor: color.withOpacity(0.15),
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.insights_rounded,
+                    color: color,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      breakdown.primaryInsight,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: color,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.lightbulb_outline_rounded,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      breakdown.suggestion,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                if (percentileText.isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4CAF50).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.emoji_events_rounded,
+                          color: const Color(0xFF4CAF50),
+                          size: 14,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          percentileText,
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: const Color(0xFF4CAF50),
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Expanded(
+                  child: Text(
+                    'Score breakdown:',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-            Text(
-              breakdown.status,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-            const SizedBox(height: 10),
-            LinearProgressIndicator(
-              value: breakdown.totalScore / 100,
-              minHeight: 9,
-              borderRadius: BorderRadius.circular(99),
-              color: color,
-              backgroundColor: color.withOpacity(0.16),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              breakdown.primaryInsight,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '💡 ${breakdown.suggestion}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            _SubScoreRow(
-              label: 'Budget Discipline',
-              value: '${breakdown.budgetDiscipline} / 40',
-            ),
-            _SubScoreRow(
-              label: 'Daily Limit Discipline',
-              value: '${breakdown.dailyDiscipline} / 20',
-            ),
-            _SubScoreRow(
-              label: 'Spending Distribution',
-              value: '${breakdown.spendingDistribution} / 20',
-            ),
-            _SubScoreRow(
-              label: 'Saving Rate',
-              value: '${breakdown.savingRate} / 20',
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _MiniScoreChip(
+                  label: 'Budget',
+                  value: breakdown.budgetDiscipline,
+                  maxValue: 40,
+                ),
+                const SizedBox(width: 8),
+                _MiniScoreChip(
+                  label: 'Daily',
+                  value: breakdown.dailyDiscipline,
+                  maxValue: 20,
+                ),
+                const SizedBox(width: 8),
+                _MiniScoreChip(
+                  label: 'Spread',
+                  value: breakdown.spendingDistribution,
+                  maxValue: 20,
+                ),
+                const SizedBox(width: 8),
+                _MiniScoreChip(
+                  label: 'Savings',
+                  value: breakdown.savingRate,
+                  maxValue: 20,
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
+  }
+
+  String _getPercentileText(int score) {
+    if (score >= 90) {
+      return 'Top 10% savers';
+    } else if (score >= 75) {
+      return 'Top 25% savers';
+    } else if (score >= 60) {
+      return 'Top 50% savers';
+    }
+    return '';
   }
 
   Color _scoreColor(BuildContext context, int score) {
@@ -113,34 +238,46 @@ class FinancialHealthCard extends StatelessWidget {
     if (score < 90) {
       return scheme.primary;
     }
-    return Colors.green.shade700;
+    return const Color(0xFF4CAF50);
   }
 }
 
-class _SubScoreRow extends StatelessWidget {
-  const _SubScoreRow({
+class _MiniScoreChip extends StatelessWidget {
+  const _MiniScoreChip({
     required this.label,
     required this.value,
+    required this.maxValue,
   });
 
   final String label;
-  final String value;
+  final int value;
+  final int maxValue;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-        ],
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceVariant,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: [
+            Text(
+              '$value',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+          ],
+        ),
       ),
     );
   }
