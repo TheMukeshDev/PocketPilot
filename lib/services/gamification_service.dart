@@ -108,9 +108,8 @@ class GamificationService {
     final todaySpent = _calculateDaySpent(expenses, current);
     final todayHasExpense = _hasExpenseForDay(expenses, current);
 
-    final actualNow = DateTime.now();
-    final dayComplete = actualNow.hour >= 18 || actualNow.day != current.day;
-    final todayValid = dayComplete && todayHasExpense;
+    // Save streak against the day whenever there is at least one expense.
+    final todayValid = todayHasExpense;
 
     final updatedGamification = _updateStreakAndPoints(
       userGamification,
@@ -351,21 +350,29 @@ class GamificationService {
     }
 
     final lastDate = current.lastCompletedDate;
-    final isConsecutive = lastDate != null && today.difference(lastDate).inDays == 1;
+    final String todayKey = _dateKey(today);
+    final bool processedEarlierToday = alreadyProcessedToday ||
+        (lastDate != null && _dateKey(lastDate) == todayKey);
+
+    if (processedEarlierToday) {
+      // Already accounted for today; keep existing streak & points (no duplicates).
+      return current;
+    }
+
+    final isConsecutive =
+        lastDate != null && _dateKey(lastDate) != todayKey &&
+            today.difference(lastDate).inDays == 1;
     final updatedStreak = isConsecutive ? current.currentStreak + 1 : 1;
-    final updatedBestStreak = updatedStreak > current.bestStreak ? updatedStreak : current.bestStreak;
+    final updatedBestStreak =
+        updatedStreak > current.bestStreak ? updatedStreak : current.bestStreak;
 
-    var points = 0;
-    if (!alreadyProcessedToday) {
-      points += dailyRewardPoints;
-
-      if (updatedStreak > 0 && updatedStreak % 7 == 0) {
-        points += streakRewardPoints;
-        _logDebug('streak_bonus', {
-          'streak': updatedStreak,
-          'bonusPoints': streakRewardPoints,
-        });
-      }
+    var points = dailyRewardPoints;
+    if (updatedStreak % 7 == 0) {
+      points += streakRewardPoints;
+      _logDebug('streak_bonus', {
+        'streak': updatedStreak,
+        'bonusPoints': streakRewardPoints,
+      });
     }
 
     return current.copyWith(
@@ -554,18 +561,28 @@ class GamificationService {
     
     int totalPointsEarned = 0;
     
-    for (final _ in sortedDays) {
-      totalPointsEarned += dailyRewardPoints;
-    }
+    totalPointsEarned += sortedDays.length * dailyRewardPoints;
     
-    if (bestStreak > 0 && bestStreak % 7 == 0) {
-      totalPointsEarned += streakRewardPoints;
+    // Every completed 7-day streak milestone adds bonus points.
+    var streakBonusInstances = 0;
+    tempStreak = 0;
+    previousDay = null;
+    for (final dayKey in sortedDays) {
+      final dayDate = DateTime.parse(dayKey);
+      if (previousDay != null && dayDate.difference(previousDay).inDays == 1) {
+        tempStreak++;
+      } else {
+        tempStreak = 1;
+      }
+
+      if (tempStreak % 7 == 0) {
+        streakBonusInstances++;
+      }
+      previousDay = dayDate;
     }
-    
-    if (currentStreak >= 7) {
-      totalPointsEarned += streakRewardPoints;
-    }
-    
+
+    totalPointsEarned += streakBonusInstances * streakRewardPoints;
+
     final result = {
       'totalPoints': totalPointsEarned,
       'currentStreak': currentStreak,
