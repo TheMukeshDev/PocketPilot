@@ -7,3 +7,23 @@
 -keep class com.upi.** { *; }
 -keep interface com.upi.** { *; }
 -dontwarn com.upi.**
+
+# Firebase optimizations
+-keepattributes Signature
+-keepattributes *Annotation*
+-dontwarn org.bouncycastle.**
+-dontwarn org.conscrypt.**
+-dontwarn org.openjsse.**
+
+# Google ML Kit
+-keep class com.google.mlkit.** { *; }
+-dontwarn com.google.mlkit.**
+
+# MongoDB
+-keep class com.mongodb.** { *; }
+-keep class org.bson.** { *; }
+
+# Keep native methods
+-keepclasseswithmembernames class * {
+    native <methods>;
+}
