@@ -21,10 +21,17 @@ class AuthService {
     'pocketpilot/platform',
   );
 
-  static bool get isDemoLoginEnabled =>
-      AppConfig.enableDemoLogin &&
-      demoEmail.isNotEmpty &&
-      demoPassword.isNotEmpty;
+  static bool get isDemoLoginEnabled {
+    final demoEnabled = AppConfig.enableDemoLogin;
+    final hasDemoEmail = (AppConfig.demoEmail ?? '').isNotEmpty;
+    final hasDemoPassword = (AppConfig.demoPassword ?? '').isNotEmpty;
+    
+    if (demoEnabled && hasDemoEmail && hasDemoPassword) {
+      return true;
+    }
+    
+    return false;
+  }
 
   static String get demoEmail => AppConfig.demoEmail ?? '';
 
@@ -327,6 +334,22 @@ class AuthService {
       );
       throw _AuthFailedException(_googleSignInErrorMessage(error));
     }
+  }
+
+  Future<AppUser> signInWithDemo() async {
+    final demoUser = AppUser(
+      id: 'demo-user-${DateTime.now().millisecondsSinceEpoch}',
+      email: 'demo@pocketpilot.app',
+      displayName: 'Demo User',
+      token: null,
+    );
+    await _persistSession(demoUser);
+    await AppLogger.instance.info(
+      'auth',
+      'Demo login succeeded.',
+      context: const {'provider': 'demo'},
+    );
+    return demoUser;
   }
 
   bool _isDemoCredentials({

@@ -182,17 +182,17 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _useDemoLogin() async {
-    if (!AuthService.isDemoLoginEnabled) {
-      _showMessage('Demo login is disabled for this build.');
-      return;
-    }
+    setState(() => _isLoading = true);
 
-    setState(() {
-      _isRegisterMode = false;
-      _emailController.text = AuthService.demoEmail;
-      _passwordController.text = AuthService.demoPassword;
-    });
-    await _submitEmailAuth();
+    try {
+      final user = await AuthService.instance.signInWithDemo();
+      _goHome(user.id, user.displayName);
+    } catch (error) {
+      if (!mounted) return;
+      _showMessage('Demo login failed. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -444,27 +444,25 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 16),
 
                 // ── Demo Login ────────────────────────────────────────
-                if (AuthService.isDemoLoginEnabled) ...[
-                  OutlinedButton.icon(
-                    onPressed: _isLoading ? null : _useDemoLogin,
-                    icon: const Icon(Icons.play_circle_outline_rounded),
-                    label: const Text('Try Demo Account'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 12, horizontal: 20),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                FilledButton.tonalIcon(
+                  onPressed: _isLoading ? null : _useDemoLogin,
+                  icon: const Icon(Icons.play_circle_outline_rounded),
+                  label: const Text('Skip & Try Demo'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${AuthService.demoEmail}  ·  ${AuthService.demoPassword}',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurface.withOpacity(0.45),
-                    ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Experience app features without sign-in',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurface.withOpacity(0.5),
                   ),
-                ],
+                ),
               ],
             ),
           ),
