@@ -243,7 +243,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
-                    onPressed: _isLoading ? null : _loginWithGoogle,
+                    onPressed: _isLoading
+                        ? null
+                        : () async {
+                            if (!AuthService.instance.isFirebaseReady) {
+                              _showMessage(
+                                'Firebase not configured. Use Demo mode or Email to login.',
+                              );
+                              return;
+                            }
+                            await _loginWithGoogle();
+                          },
                     icon: _isLoading
                         ? const SizedBox(
                             width: 18,

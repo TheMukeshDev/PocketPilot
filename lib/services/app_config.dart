@@ -30,7 +30,7 @@ class AppConfig {
 
   static bool get enableDemoLogin => _boolValue(
         'ENABLE_DEMO_LOGIN',
-        defaultValue: false,
+        defaultValue: true,
       );
 
   static String? get demoEmail => _stringValue('DEMO_EMAIL');
@@ -90,18 +90,6 @@ class AppConfig {
     return _mongoDbNameFallback;
   }
 
-  static String get firebaseApiKey => _requiredValue('FIREBASE_API_KEY');
-
-  static String get firebaseAppId => _requiredValue('FIREBASE_APP_ID');
-
-  static String get firebaseMessagingSenderId =>
-      _requiredValue('FIREBASE_MESSAGING_SENDER_ID');
-
-  static String get firebaseProjectId => _requiredValue('FIREBASE_PROJECT_ID');
-
-  static String get firebaseStorageBucket =>
-      _requiredValue('FIREBASE_STORAGE_BUCKET');
-
   static String? _stringValue(String key) {
     try {
       final value = dotenv.maybeGet(key)?.trim();
@@ -126,11 +114,50 @@ class AppConfig {
     return raw == 'true' || raw == '1' || raw == 'yes' || raw == 'on';
   }
 
-  static String _requiredValue(String key) {
-    final value = _stringValue(key);
-    if (value == null) {
-      throw StateError('Missing required environment variable: $key');
-    }
-    return value;
+  static String? get firebaseApiKey {
+    final value = _stringValue('FIREBASE_API_KEY');
+    if (value != null) return value;
+    
+    final envValue = const String.fromEnvironment('FIREBASE_API_KEY');
+    return envValue.isNotEmpty ? envValue : null;
   }
+
+  static String? get firebaseAppId {
+    final value = _stringValue('FIREBASE_APP_ID');
+    if (value != null) return value;
+    
+    final envValue = const String.fromEnvironment('FIREBASE_APP_ID');
+    return envValue.isNotEmpty ? envValue : null;
+  }
+
+  static String? get firebaseMessagingSenderId {
+    final value = _stringValue('FIREBASE_MESSAGING_SENDER_ID');
+    if (value != null) return value;
+    
+    final envValue = const String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID');
+    return envValue.isNotEmpty ? envValue : null;
+  }
+
+  static String? get firebaseProjectId {
+    final value = _stringValue('FIREBASE_PROJECT_ID');
+    if (value != null) return value;
+    
+    final envValue = const String.fromEnvironment('FIREBASE_PROJECT_ID');
+    return envValue.isNotEmpty ? envValue : null;
+  }
+
+  static String? get firebaseStorageBucket {
+    final value = _stringValue('FIREBASE_STORAGE_BUCKET');
+    if (value != null) return value;
+    
+    final envValue = const String.fromEnvironment('FIREBASE_STORAGE_BUCKET');
+    return envValue.isNotEmpty ? envValue : null;
+  }
+
+  static bool get isFirebaseConfigured =>
+      firebaseApiKey != null &&
+      firebaseAppId != null &&
+      firebaseMessagingSenderId != null &&
+      firebaseProjectId != null &&
+      firebaseStorageBucket != null;
 }

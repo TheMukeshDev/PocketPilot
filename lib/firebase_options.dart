@@ -5,7 +5,11 @@ import 'package:flutter/foundation.dart'
 import 'services/app_config.dart';
 
 class DefaultFirebaseOptions {
+  static FirebaseOptions? _cachedOptions;
+
   static FirebaseOptions get currentPlatform {
+    if (_cachedOptions != null) return _cachedOptions!;
+    
     if (kIsWeb) {
       throw UnsupportedError(
         'DefaultFirebaseOptions are not configured for web. Run flutterfire configure.',
@@ -14,7 +18,8 @@ class DefaultFirebaseOptions {
 
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        return android;
+        _cachedOptions = android;
+        return _cachedOptions!;
       case TargetPlatform.iOS:
       case TargetPlatform.macOS:
       case TargetPlatform.windows:
@@ -27,10 +32,10 @@ class DefaultFirebaseOptions {
   }
 
   static FirebaseOptions get android => FirebaseOptions(
-        apiKey: AppConfig.firebaseApiKey,
-        appId: AppConfig.firebaseAppId,
-        messagingSenderId: AppConfig.firebaseMessagingSenderId,
-        projectId: AppConfig.firebaseProjectId,
-        storageBucket: AppConfig.firebaseStorageBucket,
+        apiKey: AppConfig.firebaseApiKey ?? 'MISSING_API_KEY',
+        appId: AppConfig.firebaseAppId ?? 'MISSING_APP_ID',
+        messagingSenderId: AppConfig.firebaseMessagingSenderId ?? 'MISSING_SENDER_ID',
+        projectId: AppConfig.firebaseProjectId ?? 'MISSING_PROJECT_ID',
+        storageBucket: AppConfig.firebaseStorageBucket ?? 'MISSING_BUCKET',
       );
 }

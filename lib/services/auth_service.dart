@@ -47,6 +47,10 @@ class AuthService {
 
   Future<void> initialize() {
     return _firebaseInitialization ??= () async {
+      if (!AppConfig.isFirebaseConfigured) {
+        return;
+      }
+      
       if (Firebase.apps.isEmpty) {
         await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform,
@@ -54,6 +58,8 @@ class AuthService {
       }
     }();
   }
+
+  bool get isFirebaseReady => AppConfig.isFirebaseConfigured;
 
   Future<void> restoreSession() async {
     try {
