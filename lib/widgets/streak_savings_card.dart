@@ -252,7 +252,6 @@ class _ChallengeMini extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final progress = (challenge.progress * 100).round();
     final challengeColor = _getChallengeColor(challenge.challengeType);
 

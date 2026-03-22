@@ -141,7 +141,6 @@ class MyApp extends StatelessWidget {
             '/home': (context) => const HomeScreen(),
             '/login': (context) => const LoginScreen(),
           },
-          home: home ?? const _AuthGate(),
         );
       },
     );
