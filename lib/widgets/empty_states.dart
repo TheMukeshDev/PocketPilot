@@ -87,22 +87,22 @@ class ExpenseEmptyState extends StatelessWidget {
                   ),
             ),
             const SizedBox(height: 16),
-            _TipItem(
+            const _TipItem(
               icon: Icons.today_rounded,
               title: 'Track daily spending',
               description: 'Add expenses as they happen to stay accurate.',
             ),
-            _TipItem(
+            const _TipItem(
               icon: Icons.category_rounded,
               title: 'Use categories',
               description: 'Know where your money goes each month.',
             ),
-            _TipItem(
+            const _TipItem(
               icon: Icons.receipt_rounded,
               title: 'Save receipts',
               description: 'Keep digital copies for your records.',
             ),
-            _TipItem(
+            const _TipItem(
               icon: Icons.savings_rounded,
               title: 'Set budget limits',
               description: 'Get alerts when nearing your limit.',
@@ -236,10 +236,10 @@ class StreakEmptyState extends StatelessWidget {
                 color: const Color(0xFFFF9800).withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
+              child: const Icon(
                 Icons.local_fire_department_rounded,
                 size: 40,
-                color: const Color(0xFFFF9800),
+                color: Color(0xFFFF9800),
               ),
             ),
             const SizedBox(height: 16),

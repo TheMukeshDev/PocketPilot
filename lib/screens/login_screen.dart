@@ -76,31 +76,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _showDebugInfo() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Debug Info'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Firebase Configured: ${AuthService.instance.isFirebaseConfigured}'),
-            Text('Demo Login Enabled: ${AuthService.isDemoLoginEnabled}'),
-            Text('API Key: ${AppConfig.firebaseApiKey?.substring(0, 10) ?? "null"}...'),
-            Text('Project: ${AppConfig.firebaseProjectId ?? "null"}'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _submitEmailAuth() async {
     if (_isLoading) return;
     if (!_formKey.currentState!.validate()) return;

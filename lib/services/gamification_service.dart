@@ -554,7 +554,7 @@ class GamificationService {
     
     int totalPointsEarned = 0;
     
-    for (final dayKey in sortedDays) {
+    for (final _ in sortedDays) {
       totalPointsEarned += dailyRewardPoints;
     }
     

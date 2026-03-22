@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -11,6 +12,8 @@ import '../services/sms_tracking_preferences.dart';
 import '../services/theme_service.dart';
 import '../widgets/smart_date_selector.dart';
 import 'login_screen.dart';
+import 'privacy_policy_screen.dart';
+import 'terms_of_service_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
@@ -639,23 +642,55 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   Future<void> _openPrivacyPolicy() async {
-    final url = Uri.parse('https://pocketpilot.app/privacy');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const PrivacyPolicyScreen(),
+      ),
+    );
   }
 
   Future<void> _openTermsOfService() async {
-    final url = Uri.parse('https://pocketpilot.app/terms');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const TermsOfServiceScreen(),
+      ),
+    );
   }
 
   Future<void> _openSupport() async {
-    final url = Uri.parse('mailto:support@pocketpilot.app');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
+    final currentUser = AuthService.instance.currentUser;
+    final userName = currentUser?.displayName?.trim().isNotEmpty == true
+        ? currentUser!.displayName!
+        : currentUser?.email.split('@').first ?? 'User';
+
+    final subject = Uri.encodeComponent('PocketPilot Support Request');
+    final body = Uri.encodeComponent(
+      'Hello PocketPilot Support Team,\n\n'
+      'I need help regarding the app.\n\n'
+      'Issue/Question:\n'
+      '[Please describe your issue here]\n\n'
+      'App Version:\n'
+      '[Optional]\n\n'
+      'Thanks,\n'
+      '$userName',
+    );
+
+    final mailtoUri = Uri.parse(
+      'mailto:mukeshkumar916241@gmail.com?subject=$subject&body=$body',
+    );
+
+    try {
+      if (await canLaunchUrl(mailtoUri)) {
+        await launchUrl(mailtoUri);
+      } else {
+        if (mounted) {
+          _showSnackBar('No email app found on this device.', isError: true);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        _showSnackBar('Unable to open email app.', isError: true);
+      }
     }
   }
 
@@ -716,349 +751,362 @@ class _SettingsScreenState extends State<SettingsScreen>
     final initials = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'P';
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Settings',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+        centerTitle: false,
+        backgroundColor: colorScheme.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0.5,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: colorScheme.brightness == Brightness.light
+              ? Brightness.dark
+              : Brightness.light,
+        ),
+      ),
       body: CustomScrollView(
         slivers: [
-          SliverAppBar(
-            expandedHeight: 200,
-            pinned: true,
-            stretch: true,
-            backgroundColor: colorScheme.surface,
-            surfaceTintColor: Colors.transparent,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      colorScheme.primary.withOpacity(0.15),
-                      colorScheme.primaryContainer.withOpacity(0.5),
-                      colorScheme.surface,
-                    ],
+          SliverToBoxAdapter(
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+                  _buildProfileCard(
+                    displayName: displayName,
+                    email: email,
+                    initials: initials,
+                    colorScheme: colorScheme,
+                    textTheme: textTheme,
                   ),
-                ),
-                child: SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
+                  const SizedBox(height: 24),
+                  _buildSectionTitle('Appearance'),
+                  _buildSettingsCard([
+                    _buildThemeSelector(),
+                  ]),
+                  const SizedBox(height: 24),
+                  _buildSectionTitle('Account'),
+                  _buildSettingsCard([
+                    _buildSettingsTile(
+                      icon: Icons.account_balance_wallet_rounded,
+                      iconColor: colorScheme.primary,
+                      title: 'Monthly Budget',
+                      subtitle: '₹$_budget',
+                      trailing: _isSavingBudget
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : null,
+                      onTap: _openBudgetDialog,
+                    ),
+                    _buildDivider(),
+                    _buildSettingsTile(
+                      icon: Icons.home_work_rounded,
+                      iconColor: colorScheme.secondary,
+                      title: 'Monthly Rent',
+                      subtitle: _rent == 0 ? 'Not set (₹0)' : '₹$_rent',
+                      trailing: _isSavingRent
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : null,
+                      onTap: _openRentDialog,
+                    ),
+                    _buildDivider(),
+                    _buildSettingsTile(
+                      icon: Icons.calendar_month_rounded,
+                      iconColor: colorScheme.tertiary,
+                      title: 'Budget Cycle Start',
+                      subtitle: 'Day $_budgetCycleStartDay of every month',
+                      onTap: _openBudgetCycleDialog,
+                    ),
+                  ]),
+                  const SizedBox(height: 24),
+                  _buildSectionTitle('SMS Tracking'),
+                  _buildSettingsCard([
+                    _buildSettingsTile(
+                      icon: Icons.sms_rounded,
+                      iconColor: colorScheme.primary,
+                      title: 'Auto-Track Mode',
+                      subtitle: _smsApprovalMode.description,
+                      badge: _smsApprovalMode.label,
+                      badgeColor: colorScheme.primaryContainer,
+                      badgeTextColor: colorScheme.primary,
+                      onTap: _openSmsApprovalModePicker,
+                    ),
+                  ]),
+                  const SizedBox(height: 24),
+                  _buildSectionTitle('Notifications'),
+                  _buildSettingsCard([
+                    _buildSwitchTile(
+                      icon: Icons.notifications_rounded,
+                      iconColor: colorScheme.primary,
+                      title: 'Push Notifications',
+                      subtitle: _masterNotificationsEnabled
+                          ? 'Receive notifications from PocketPilot'
+                          : 'Notifications are disabled',
+                      value: _masterNotificationsEnabled,
+                      onChanged: _setMasterNotificationsEnabled,
+                    ),
+                    if (_masterNotificationsEnabled) ...[
+                      _buildDivider(),
+                      _buildSwitchTile(
+                        icon: Icons.warning_amber_rounded,
+                        iconColor: Colors.amber.shade700,
+                        title: 'Budget Alerts',
+                        subtitle: 'Overspending warnings',
+                        value: _budgetAlertsEnabled,
+                        onChanged: _setBudgetAlertsEnabled,
+                      ),
+                      _buildDivider(),
+                      _buildSwitchTile(
+                        icon: Icons.local_fire_department_rounded,
+                        iconColor: Colors.orange,
+                        title: 'Streak Updates',
+                        subtitle: 'Milestones and streak breaks',
+                        value: _streakUpdatesEnabled,
+                        onChanged: _setStreakUpdatesEnabled,
+                      ),
+                      _buildDivider(),
+                      _buildSwitchTile(
+                        icon: Icons.emoji_events_rounded,
+                        iconColor: Colors.purple,
+                        title: 'Rewards & Points',
+                        subtitle: 'Challenge completions and badges',
+                        value: _rewardsPointsEnabled,
+                        onChanged: _setRewardsPointsEnabled,
+                      ),
+                      _buildDivider(),
+                      _buildSwitchTile(
+                        icon: Icons.notifications_active_rounded,
+                        iconColor: colorScheme.secondary,
+                        title: 'Reminders',
+                        subtitle: 'Daily tips and engagement',
+                        value: _reminderNotificationsEnabled,
+                        onChanged: _setReminderNotificationsEnabled,
+                      ),
+                    ],
+                  ]),
+                  const SizedBox(height: 24),
+                  _buildSectionTitle('Support'),
+                  _buildSettingsCard([
+                    _buildSettingsTile(
+                      icon: Icons.star_rounded,
+                      iconColor: Colors.amber,
+                      title: 'Rate PocketPilot',
+                      subtitle: 'Love the app? Rate us on Play Store',
+                      onTap: _rateApp,
+                    ),
+                    _buildDivider(),
+                    _buildSettingsTile(
+                      icon: Icons.help_outline_rounded,
+                      iconColor: colorScheme.primary,
+                      title: 'Help & Support',
+                      subtitle: 'Get help or send feedback',
+                      onTap: _openSupport,
+                    ),
+                  ]),
+                  const SizedBox(height: 24),
+                  _buildSectionTitle('Legal'),
+                  _buildSettingsCard([
+                    _buildSettingsTile(
+                      icon: Icons.privacy_tip_outlined,
+                      iconColor: colorScheme.primary,
+                      title: 'Privacy Policy',
+                      subtitle: 'How we handle your data',
+                      showArrow: true,
+                      onTap: _openPrivacyPolicy,
+                    ),
+                    _buildDivider(),
+                    _buildSettingsTile(
+                      icon: Icons.description_outlined,
+                      iconColor: colorScheme.primary,
+                      title: 'Terms of Service',
+                      subtitle: 'Usage terms and conditions',
+                      showArrow: true,
+                      onTap: _openTermsOfService,
+                    ),
+                  ]),
+                  const SizedBox(height: 24),
+                  _buildSectionTitle('Danger Zone'),
+                  _buildSettingsCard([
+                    _buildSettingsTile(
+                      icon: Icons.delete_sweep_rounded,
+                      iconColor: colorScheme.error,
+                      title: 'Clear Local Data',
+                      subtitle: 'Delete local expenses and preferences',
+                      onTap: _showClearDataDialog,
+                    ),
+                    _buildDivider(),
+                    _buildSettingsTile(
+                      icon: Icons.logout_rounded,
+                      iconColor: colorScheme.error,
+                      title: 'Log out',
+                      subtitle: 'Sign out of PocketPilot',
+                      onTap: _logout,
+                    ),
+                    _buildDivider(),
+                    _buildSettingsTile(
+                      icon: Icons.delete_forever_rounded,
+                      iconColor: colorScheme.error,
+                      title: 'Delete Account',
+                      subtitle: 'Permanently remove your account',
+                      isDestructive: true,
+                      onTap: _deleteAccount,
+                    ),
+                  ]),
+                  const SizedBox(height: 32),
+                  Center(
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 72,
-                              height: 72,
-                              decoration: BoxDecoration(
-                                color: colorScheme.primary,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: colorScheme.primary.withOpacity(0.3),
-                                    blurRadius: 20,
-                                    offset: const Offset(0, 8),
-                                  ),
-                                ],
-                              ),
-                              child: Center(
-                                child: Text(
-                                  initials,
-                                  style: textTheme.headlineMedium?.copyWith(
-                                    color: colorScheme.onPrimary,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    displayName,
-                                    style: textTheme.titleLarge?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  if (email.isNotEmpty)
-                                    Text(
-                                      email,
-                                      style: textTheme.bodyMedium?.copyWith(
-                                        color: colorScheme.onSurfaceVariant,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  const SizedBox(height: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: colorScheme.primaryContainer,
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.verified_rounded,
-                                          size: 14,
-                                          color: colorScheme.primary,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'PocketPilot User',
-                                          style: textTheme.labelSmall?.copyWith(
-                                            color: colorScheme.primary,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                        Text(
+                          'PocketPilot v1.0.1',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Made with ♥ in India',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant.withOpacity(0.6),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ),
+                  const SizedBox(height: 40),
+                ],
               ),
-              title: Text(
-                'Settings',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: colorScheme.onSurface,
-                ),
-              ),
-              centerTitle: false,
-              titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
             ),
           ),
-          SliverToBoxAdapter(
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 40),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileCard({
+    required String displayName,
+    required String email,
+    required String initials,
+    required ColorScheme colorScheme,
+    required TextTheme textTheme,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              colorScheme.primary.withOpacity(0.12),
+              colorScheme.primaryContainer.withOpacity(0.4),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: colorScheme.primary.withOpacity(0.15),
+            width: 1,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: colorScheme.primary.withOpacity(0.25),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    initials,
+                    style: textTheme.headlineSmall?.copyWith(
+                      color: colorScheme.onPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSectionTitle('Appearance'),
-                    _buildSettingsCard([
-                      _buildThemeSelector(),
-                    ]),
-                    const SizedBox(height: 24),
-                    _buildSectionTitle('Account'),
-                    _buildSettingsCard([
-                      _buildSettingsTile(
-                        icon: Icons.account_balance_wallet_rounded,
-                        iconColor: colorScheme.primary,
-                        title: 'Monthly Budget',
-                        subtitle: '₹$_budget',
-                        trailing: _isSavingBudget
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : null,
-                        onTap: _openBudgetDialog,
+                    Text(
+                      displayName,
+                      style: textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
                       ),
-                      _buildDivider(),
-                      _buildSettingsTile(
-                        icon: Icons.home_work_rounded,
-                        iconColor: colorScheme.secondary,
-                        title: 'Monthly Rent',
-                        subtitle: _rent == 0 ? 'Not set (₹0)' : '₹$_rent',
-                        trailing: _isSavingRent
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : null,
-                        onTap: _openRentDialog,
-                      ),
-                      _buildDivider(),
-                      _buildSettingsTile(
-                        icon: Icons.calendar_month_rounded,
-                        iconColor: colorScheme.tertiary,
-                        title: 'Budget Cycle Start',
-                        subtitle: 'Day $_budgetCycleStartDay of every month',
-                        onTap: _openBudgetCycleDialog,
-                      ),
-                    ]),
-                    const SizedBox(height: 24),
-                    _buildSectionTitle('SMS Tracking'),
-                    _buildSettingsCard([
-                      _buildSettingsTile(
-                        icon: Icons.sms_rounded,
-                        iconColor: colorScheme.primary,
-                        title: 'Auto-Track Mode',
-                        subtitle: _smsApprovalMode.description,
-                        badge: _smsApprovalMode.label,
-                        badgeColor: colorScheme.primaryContainer,
-                        badgeTextColor: colorScheme.primary,
-                        onTap: _openSmsApprovalModePicker,
-                      ),
-                    ]),
-                    const SizedBox(height: 24),
-                    _buildSectionTitle('Notifications'),
-                    _buildSettingsCard([
-                      _buildSwitchTile(
-                        icon: Icons.notifications_rounded,
-                        iconColor: colorScheme.primary,
-                        title: 'Push Notifications',
-                        subtitle: _masterNotificationsEnabled
-                            ? 'Receive notifications from PocketPilot'
-                            : 'Notifications are disabled',
-                        value: _masterNotificationsEnabled,
-                        onChanged: _setMasterNotificationsEnabled,
-                      ),
-                      if (_masterNotificationsEnabled) ...[
-                        _buildDivider(),
-                        _buildSwitchTile(
-                          icon: Icons.warning_amber_rounded,
-                          iconColor: Colors.amber.shade700,
-                          title: 'Budget Alerts',
-                          subtitle: 'Overspending warnings',
-                          value: _budgetAlertsEnabled,
-                          onChanged: _setBudgetAlertsEnabled,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (email.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        email,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
                         ),
-                        _buildDivider(),
-                        _buildSwitchTile(
-                          icon: Icons.local_fire_department_rounded,
-                          iconColor: Colors.orange,
-                          title: 'Streak Updates',
-                          subtitle: 'Milestones and streak breaks',
-                          value: _streakUpdatesEnabled,
-                          onChanged: _setStreakUpdatesEnabled,
-                        ),
-                        _buildDivider(),
-                        _buildSwitchTile(
-                          icon: Icons.emoji_events_rounded,
-                          iconColor: Colors.purple,
-                          title: 'Rewards & Points',
-                          subtitle: 'Challenge completions and badges',
-                          value: _rewardsPointsEnabled,
-                          onChanged: _setRewardsPointsEnabled,
-                        ),
-                        _buildDivider(),
-                        _buildSwitchTile(
-                          icon: Icons.notifications_active_rounded,
-                          iconColor: colorScheme.secondary,
-                          title: 'Reminders',
-                          subtitle: 'Daily tips and engagement',
-                          value: _reminderNotificationsEnabled,
-                          onChanged: _setReminderNotificationsEnabled,
-                        ),
-                      ],
-                    ]),
-                    const SizedBox(height: 24),
-                    _buildSectionTitle('Support'),
-                    _buildSettingsCard([
-                      _buildSettingsTile(
-                        icon: Icons.star_rounded,
-                        iconColor: Colors.amber,
-                        title: 'Rate PocketPilot',
-                        subtitle: 'Love the app? Rate us on Play Store',
-                        onTap: _rateApp,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      _buildDivider(),
-                      _buildSettingsTile(
-                        icon: Icons.help_outline_rounded,
-                        iconColor: colorScheme.primary,
-                        title: 'Help & Support',
-                        subtitle: 'Get help or send feedback',
-                        onTap: _openSupport,
+                    ],
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
                       ),
-                    ]),
-                    const SizedBox(height: 24),
-                    _buildSectionTitle('Legal'),
-                    _buildSettingsCard([
-                      _buildSettingsTile(
-                        icon: Icons.privacy_tip_outlined,
-                        iconColor: colorScheme.primary,
-                        title: 'Privacy Policy',
-                        subtitle: 'How we handle your data',
-                        showArrow: true,
-                        onTap: _openPrivacyPolicy,
+                      decoration: BoxDecoration(
+                        color: colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      _buildDivider(),
-                      _buildSettingsTile(
-                        icon: Icons.description_outlined,
-                        iconColor: colorScheme.primary,
-                        title: 'Terms of Service',
-                        subtitle: 'Usage terms and conditions',
-                        showArrow: true,
-                        onTap: _openTermsOfService,
-                      ),
-                    ]),
-                    const SizedBox(height: 24),
-                    _buildSectionTitle('Danger Zone'),
-                    _buildSettingsCard([
-                      _buildSettingsTile(
-                        icon: Icons.delete_sweep_rounded,
-                        iconColor: colorScheme.error,
-                        title: 'Clear Local Data',
-                        subtitle: 'Delete local expenses and preferences',
-                        onTap: _showClearDataDialog,
-                      ),
-                      _buildDivider(),
-                      _buildSettingsTile(
-                        icon: Icons.logout_rounded,
-                        iconColor: colorScheme.error,
-                        title: 'Log out',
-                        subtitle: 'Sign out of PocketPilot',
-                        onTap: _logout,
-                      ),
-                      _buildDivider(),
-                      _buildSettingsTile(
-                        icon: Icons.delete_forever_rounded,
-                        iconColor: colorScheme.error,
-                        title: 'Delete Account',
-                        subtitle: 'Permanently remove your account',
-                        isDestructive: true,
-                        onTap: _deleteAccount,
-                      ),
-                    ]),
-                    const SizedBox(height: 32),
-                    Center(
-                      child: Column(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            'PocketPilot v1.0.1',
-                            style: textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          Icon(
+                            Icons.verified_rounded,
+                            size: 12,
+                            color: colorScheme.primary,
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(width: 4),
                           Text(
-                            'Made with ♥ in India',
-                            style: textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant.withOpacity(0.6),
+                            'PocketPilot User',
+                            style: textTheme.labelSmall?.copyWith(
+                              color: colorScheme.primary,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 40),
                   ],
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

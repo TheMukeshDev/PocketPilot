@@ -30,7 +30,7 @@ import '../widgets/financial_health_card.dart';
 import '../widgets/home_header.dart';
 import '../widgets/main_bottom_nav.dart';
 import '../widgets/streak_savings_card.dart';
-import '../widgets/prediction_card.dart';
+import '../widgets/overspend_insight_card.dart';
 import '../widgets/sms_expense_dialog.dart';
 import '../widgets/spending_chart.dart';
 import 'add_expense_screen.dart';
@@ -1181,7 +1181,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         dailyLimit: dailySpendingLimit,
                       ),
                       const SizedBox(height: 10),
-                      PredictionCard(prediction: _prediction),
+                      OverspendInsightCard(prediction: _prediction),
                       const SizedBox(height: 8),
                       Card(
                         elevation: 1.5,

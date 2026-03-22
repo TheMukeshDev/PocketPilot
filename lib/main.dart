@@ -261,15 +261,15 @@ class _AuthGateState extends State<_AuthGate> {
     await AuthService.instance.restoreSession();
     
     if (AuthService.instance.currentUser == null) {
-      return _AuthGateResult(showLogin: true);
+      return const _AuthGateResult(showLogin: true);
     }
     
     final shouldShowOnboarding = await OnboardingScreen.shouldShow();
     if (shouldShowOnboarding) {
-      return _AuthGateResult(showOnboarding: true);
+      return const _AuthGateResult(showOnboarding: true);
     }
     
-    return _AuthGateResult(showHome: true);
+    return const _AuthGateResult(showHome: true);
   }
 
   @override

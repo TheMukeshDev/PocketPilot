@@ -142,7 +142,7 @@ class AppConfig {
     final value = _stringValue('FIREBASE_API_KEY');
     if (value != null && value.isNotEmpty) return value;
     
-    final envValue = const String.fromEnvironment('FIREBASE_API_KEY');
+    const envValue = String.fromEnvironment('FIREBASE_API_KEY');
     return envValue.isNotEmpty ? envValue : null;
   }
 
@@ -150,7 +150,7 @@ class AppConfig {
     final value = _stringValue('FIREBASE_APP_ID');
     if (value != null && value.isNotEmpty) return value;
     
-    final envValue = const String.fromEnvironment('FIREBASE_APP_ID');
+    const envValue = String.fromEnvironment('FIREBASE_APP_ID');
     return envValue.isNotEmpty ? envValue : null;
   }
 
@@ -158,7 +158,7 @@ class AppConfig {
     final value = _stringValue('FIREBASE_MESSAGING_SENDER_ID');
     if (value != null && value.isNotEmpty) return value;
     
-    final envValue = const String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID');
+    const envValue = String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID');
     return envValue.isNotEmpty ? envValue : null;
   }
 
@@ -166,7 +166,7 @@ class AppConfig {
     final value = _stringValue('FIREBASE_PROJECT_ID');
     if (value != null && value.isNotEmpty) return value;
     
-    final envValue = const String.fromEnvironment('FIREBASE_PROJECT_ID');
+    const envValue = String.fromEnvironment('FIREBASE_PROJECT_ID');
     return envValue.isNotEmpty ? envValue : null;
   }
 
@@ -174,7 +174,7 @@ class AppConfig {
     final value = _stringValue('FIREBASE_STORAGE_BUCKET');
     if (value != null && value.isNotEmpty) return value;
     
-    final envValue = const String.fromEnvironment('FIREBASE_STORAGE_BUCKET');
+    const envValue = String.fromEnvironment('FIREBASE_STORAGE_BUCKET');
     return envValue.isNotEmpty ? envValue : null;
   }
 

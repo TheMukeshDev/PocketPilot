@@ -154,9 +154,9 @@ class FinancialHealthCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.emoji_events_rounded,
-                          color: const Color(0xFF4CAF50),
+                          color: Color(0xFF4CAF50),
                           size: 14,
                         ),
                         const SizedBox(width: 4),

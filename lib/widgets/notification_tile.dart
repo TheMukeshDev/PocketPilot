@@ -178,9 +178,9 @@ class NotificationTile extends StatelessWidget {
     } else if (notificationDate == yesterday) {
       return 'Yesterday at $timeStr';
     } else if (now.difference(timestamp).inDays < 7) {
-      return DateFormat('EEEE').format(timestamp) + ' at $timeStr';
+      return '${DateFormat('EEEE').format(timestamp)} at $timeStr';
     } else {
-      return DateFormat('MMM d, y').format(timestamp) + ' at $timeStr';
+      return '${DateFormat('MMM d, y').format(timestamp)} at $timeStr';
     }
   }
 }

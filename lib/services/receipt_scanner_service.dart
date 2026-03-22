@@ -446,8 +446,9 @@ class ReceiptScannerService {
     final meaningful = text.split('\n').map((l) => l.trim()).where((l) {
       if (l.length < 3) return false;
       if (RegExp(r'^[\d\s.,\-/:+()]+$').hasMatch(l)) return false;
-      if (RegExp(r'^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}').hasMatch(l))
+      if (RegExp(r'^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}').hasMatch(l)) {
         return false;
+      }
       if (l.contains('@') && l.length < 40) return false; // UPI VPA
       if (RegExp(
         r'^(txn|ref|utr|order|trans|invoice|gstin|gst)\s*[:\-#]?\s*\d',

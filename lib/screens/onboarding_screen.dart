@@ -471,9 +471,9 @@ class _ReadyPage extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.calculate_rounded,
-                          color: const Color(0xFF4CAF50),
+                          color: Color(0xFF4CAF50),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
