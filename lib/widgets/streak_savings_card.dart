@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../models/challenge.dart';
 
@@ -117,6 +118,12 @@ class StreakSavingsCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (stats.currentStreak > 0 && stats.streakStartDate != null) ...[
+              const SizedBox(height: 12),
+              _buildStreakStartDate(context, stats.streakStartDate!),
+            ],
+            const SizedBox(height: 12),
+            _buildTodayStatus(context, stats),
             const SizedBox(height: 16),
             const Divider(),
             const SizedBox(height: 12),
@@ -166,6 +173,144 @@ class StreakSavingsCard extends StatelessWidget {
     
     final saved = monthlyChallenge.currentSavings;
     return saved;
+  }
+
+  Widget _buildStreakStartDate(BuildContext context, DateTime startDate) {
+    final formattedDate = DateFormat('dd MMM yyyy').format(startDate);
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF3E0).withOpacity(0.5),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: const Color(0xFFFF9800).withOpacity(0.3),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.calendar_today_rounded,
+            size: 14,
+            color: Color(0xFFFF9800),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'Streak started: $formattedDate',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: const Color(0xFFE65100),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTodayStatus(BuildContext context, GamificationStats stats) {
+    final colorScheme = Theme.of(context).colorScheme;
+    
+    final hasLoggedExpense = stats.todaySpent > 0;
+    final isUnderLimit = stats.dailyLimit > 0 && stats.todaySpent <= stats.dailyLimit;
+    final hasActivityPoint = stats.todayActivityPointAwarded;
+    final hasUnderLimitPoint = stats.todayUnderLimitPointAwarded;
+    
+    Color statusColor;
+    IconData statusIcon;
+    String statusText;
+    
+    if (!hasLoggedExpense) {
+      statusColor = colorScheme.error;
+      statusIcon = Icons.warning_amber_rounded;
+      statusText = 'Log at least one expense today to continue your streak';
+    } else {
+      statusColor = const Color(0xFF4CAF50);
+      statusIcon = Icons.check_circle_rounded;
+      statusText = '✓ Expense logged today';
+    }
+    
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: statusColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: statusColor.withOpacity(0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(statusIcon, size: 16, color: statusColor),
+              const SizedBox(width: 8),
+              Text(
+                "Today's Activity",
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: statusColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            statusText,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: statusColor.withOpacity(0.9),
+            ),
+          ),
+          if (hasLoggedExpense) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                if (hasActivityPoint)
+                  _buildPointChip(context, '+1', 'Activity point', const Color(0xFF4CAF50)),
+                if (hasUnderLimitPoint)
+                  _buildPointChip(context, '+1', 'Under-limit point', const Color(0xFF2196F3)),
+                if (!isUnderLimit)
+                  _buildPointChip(context, '₹${stats.todaySpent}', 'spent', colorScheme.error),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPointChip(BuildContext context, String value, String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              color: color.withOpacity(0.8),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -184,18 +184,27 @@ class UserGamification {
     required this.currentStreak,
     required this.bestStreak,
     required this.lastCompletedDate,
+    this.streakStartDate,
+    this.todayActivityPointAwarded = false,
+    this.todayUnderLimitPointAwarded = false,
   });
 
   final int totalPoints;
   final int currentStreak;
   final int bestStreak;
   final DateTime? lastCompletedDate;
+  final DateTime? streakStartDate;
+  final bool todayActivityPointAwarded;
+  final bool todayUnderLimitPointAwarded;
 
   static const UserGamification empty = UserGamification(
     totalPoints: 0,
     currentStreak: 0,
     bestStreak: 0,
     lastCompletedDate: null,
+    streakStartDate: null,
+    todayActivityPointAwarded: false,
+    todayUnderLimitPointAwarded: false,
   );
 
   UserGamification copyWith({
@@ -203,12 +212,18 @@ class UserGamification {
     int? currentStreak,
     int? bestStreak,
     DateTime? lastCompletedDate,
+    DateTime? streakStartDate,
+    bool? todayActivityPointAwarded,
+    bool? todayUnderLimitPointAwarded,
   }) {
     return UserGamification(
       totalPoints: totalPoints ?? this.totalPoints,
       currentStreak: currentStreak ?? this.currentStreak,
       bestStreak: bestStreak ?? this.bestStreak,
       lastCompletedDate: lastCompletedDate ?? this.lastCompletedDate,
+      streakStartDate: streakStartDate ?? this.streakStartDate,
+      todayActivityPointAwarded: todayActivityPointAwarded ?? this.todayActivityPointAwarded,
+      todayUnderLimitPointAwarded: todayUnderLimitPointAwarded ?? this.todayUnderLimitPointAwarded,
     );
   }
 
@@ -218,6 +233,9 @@ class UserGamification {
       'currentStreak': currentStreak,
       'bestStreak': bestStreak,
       'lastCompletedDate': lastCompletedDate?.toIso8601String(),
+      'streakStartDate': streakStartDate?.toIso8601String(),
+      'todayActivityPointAwarded': todayActivityPointAwarded,
+      'todayUnderLimitPointAwarded': todayUnderLimitPointAwarded,
     };
   }
 
@@ -229,6 +247,11 @@ class UserGamification {
       lastCompletedDate: map['lastCompletedDate'] != null
           ? DateTime.tryParse(map['lastCompletedDate'].toString())
           : null,
+      streakStartDate: map['streakStartDate'] != null
+          ? DateTime.tryParse(map['streakStartDate'].toString())
+          : null,
+      todayActivityPointAwarded: map['todayActivityPointAwarded'] == true,
+      todayUnderLimitPointAwarded: map['todayUnderLimitPointAwarded'] == true,
     );
   }
 }
@@ -239,31 +262,59 @@ class GamificationStats {
     required this.currentStreak,
     required this.bestStreak,
     required this.badgesUnlocked,
+    this.streakStartDate,
+    this.todayActivityPointAwarded = false,
+    this.todayUnderLimitPointAwarded = false,
+    this.todaySpent = 0,
+    this.dailyLimit = 0,
   });
 
   final int totalPoints;
   final int currentStreak;
   final int bestStreak;
   final List<String> badgesUnlocked;
+  final DateTime? streakStartDate;
+  final bool todayActivityPointAwarded;
+  final bool todayUnderLimitPointAwarded;
+  final int todaySpent;
+  final int dailyLimit;
 
   static const GamificationStats empty = GamificationStats(
     totalPoints: 0,
     currentStreak: 0,
     bestStreak: 0,
     badgesUnlocked: <String>[],
+    streakStartDate: null,
+    todayActivityPointAwarded: false,
+    todayUnderLimitPointAwarded: false,
+    todaySpent: 0,
+    dailyLimit: 0,
   );
+
+  bool get todayUnderLimit => dailyLimit > 0 && todaySpent <= dailyLimit;
+  bool get todayHasActivity => todaySpent > 0;
 
   GamificationStats copyWith({
     int? totalPoints,
     int? currentStreak,
     int? bestStreak,
     List<String>? badgesUnlocked,
+    DateTime? streakStartDate,
+    bool? todayActivityPointAwarded,
+    bool? todayUnderLimitPointAwarded,
+    int? todaySpent,
+    int? dailyLimit,
   }) {
     return GamificationStats(
       totalPoints: totalPoints ?? this.totalPoints,
       currentStreak: currentStreak ?? this.currentStreak,
       bestStreak: bestStreak ?? this.bestStreak,
       badgesUnlocked: badgesUnlocked ?? this.badgesUnlocked,
+      streakStartDate: streakStartDate ?? this.streakStartDate,
+      todayActivityPointAwarded: todayActivityPointAwarded ?? this.todayActivityPointAwarded,
+      todayUnderLimitPointAwarded: todayUnderLimitPointAwarded ?? this.todayUnderLimitPointAwarded,
+      todaySpent: todaySpent ?? this.todaySpent,
+      dailyLimit: dailyLimit ?? this.dailyLimit,
     );
   }
 
@@ -273,17 +324,30 @@ class GamificationStats {
       'currentStreak': currentStreak,
       'bestStreak': bestStreak,
       'badgesUnlocked': badgesUnlocked,
+      'streakStartDate': streakStartDate?.toIso8601String(),
+      'todayActivityPointAwarded': todayActivityPointAwarded,
+      'todayUnderLimitPointAwarded': todayUnderLimitPointAwarded,
+      'todaySpent': todaySpent,
+      'dailyLimit': dailyLimit,
     };
   }
 
   factory GamificationStats.fromMap(Map<String, dynamic> map) {
     return GamificationStats(
-      totalPoints: ((map['totalPoints'] as dynamic)?.toInt()) ?? 0,
-      currentStreak: ((map['currentStreak'] as dynamic)?.toInt()) ?? 0,
-      bestStreak: ((map['bestStreak'] as dynamic)?.toInt()) ?? 0,
-      badgesUnlocked: ((map['badgesUnlocked'] as List<dynamic>?) ?? const [])
-          .map((item) => item.toString())
-          .toList(),
+      totalPoints: (map['totalPoints'] as num?)?.toInt() ?? 0,
+      currentStreak: (map['currentStreak'] as num?)?.toInt() ?? 0,
+      bestStreak: (map['bestStreak'] as num?)?.toInt() ?? 0,
+      badgesUnlocked: (map['badgesUnlocked'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          <String>[],
+      streakStartDate: map['streakStartDate'] != null
+          ? DateTime.tryParse(map['streakStartDate'].toString())
+          : null,
+      todayActivityPointAwarded: map['todayActivityPointAwarded'] == true,
+      todayUnderLimitPointAwarded: map['todayUnderLimitPointAwarded'] == true,
+      todaySpent: (map['todaySpent'] as num?)?.toInt() ?? 0,
+      dailyLimit: (map['dailyLimit'] as num?)?.toInt() ?? 0,
     );
   }
 }

@@ -108,12 +108,13 @@ class GamificationService {
     final todaySpent = _calculateDaySpent(expenses, current);
     final todayHasExpense = _hasExpenseForDay(expenses, current);
 
-    // Save streak against the day whenever there is at least one expense.
     final todayValid = todayHasExpense;
+    final todayIsUnderLimit = dailyLimit > 0 && todaySpent <= dailyLimit;
 
     final updatedGamification = _updateStreakAndPoints(
       userGamification,
       todayValid,
+      todayIsUnderLimit,
       alreadyProcessedToday,
       current,
     );
@@ -177,6 +178,11 @@ class GamificationService {
         currentStreak: updatedGamification.currentStreak,
         bestStreak: updatedGamification.bestStreak,
         badgesUnlocked: badgeResult.updatedBadges,
+        streakStartDate: updatedGamification.streakStartDate,
+        todayActivityPointAwarded: updatedGamification.todayActivityPointAwarded,
+        todayUnderLimitPointAwarded: updatedGamification.todayUnderLimitPointAwarded,
+        todaySpent: todaySpent,
+        dailyLimit: dailyLimit,
       ),
       newlyCompleted: newlyCompleted,
       newlyUnlockedBadges: badgeResult.newBadges,
@@ -338,48 +344,61 @@ class GamificationService {
 
   UserGamification _updateStreakAndPoints(
     UserGamification current,
-    bool todayValid,
+    bool todayHasExpense,
+    bool todayIsUnderLimit,
     bool alreadyProcessedToday,
     DateTime today,
   ) {
-    if (!todayValid) {
-      return current.copyWith(
-        currentStreak: 0,
-        lastCompletedDate: null,
-      );
-    }
+    final todayKey = _dateKey(today);
+    final bool alreadyCountedToday = alreadyProcessedToday ||
+        (current.lastCompletedDate != null && 
+         _dateKey(current.lastCompletedDate!) == todayKey);
 
-    final lastDate = current.lastCompletedDate;
-    final String todayKey = _dateKey(today);
-    final bool processedEarlierToday = alreadyProcessedToday ||
-        (lastDate != null && _dateKey(lastDate) == todayKey);
+    int pointsToAward = 0;
+    bool awardActivityPoint = false;
+    bool awardUnderLimitPoint = false;
+    DateTime? newStreakStartDate = current.streakStartDate;
+    int newStreakCount = current.currentStreak;
 
-    if (processedEarlierToday) {
-      // Already accounted for today; keep existing streak & points (no duplicates).
-      return current;
-    }
-
-    final isConsecutive =
-        lastDate != null && _dateKey(lastDate) != todayKey &&
+    if (todayHasExpense) {
+      if (!alreadyCountedToday) {
+        final lastDate = current.lastCompletedDate;
+        final isConsecutive = lastDate != null &&
             today.difference(lastDate).inDays == 1;
-    final updatedStreak = isConsecutive ? current.currentStreak + 1 : 1;
-    final updatedBestStreak =
-        updatedStreak > current.bestStreak ? updatedStreak : current.bestStreak;
 
-    var points = dailyRewardPoints;
-    if (updatedStreak % 7 == 0) {
-      points += streakRewardPoints;
-      _logDebug('streak_bonus', {
-        'streak': updatedStreak,
-        'bonusPoints': streakRewardPoints,
-      });
+        if (isConsecutive) {
+          newStreakCount = current.currentStreak + 1;
+        } else {
+          newStreakCount = 1;
+          newStreakStartDate = today;
+        }
+
+        awardActivityPoint = true;
+        pointsToAward += dailyRewardPoints;
+
+        if (todayIsUnderLimit) {
+          awardUnderLimitPoint = true;
+          pointsToAward += dailyRewardPoints;
+        }
+      } else {
+        if (!current.todayActivityPointAwarded && todayHasExpense) {
+          awardActivityPoint = true;
+        }
+        if (!current.todayUnderLimitPointAwarded && todayIsUnderLimit && todayHasExpense) {
+          awardUnderLimitPoint = true;
+          pointsToAward += dailyRewardPoints;
+        }
+      }
     }
 
     return current.copyWith(
-      totalPoints: current.totalPoints + points,
-      currentStreak: updatedStreak,
-      bestStreak: updatedBestStreak,
-      lastCompletedDate: today,
+      totalPoints: current.totalPoints + pointsToAward,
+      currentStreak: newStreakCount,
+      bestStreak: newStreakCount > current.bestStreak ? newStreakCount : current.bestStreak,
+      lastCompletedDate: todayHasExpense ? today : current.lastCompletedDate,
+      streakStartDate: newStreakStartDate,
+      todayActivityPointAwarded: awardActivityPoint,
+      todayUnderLimitPointAwarded: awardUnderLimitPoint,
     );
   }
 
