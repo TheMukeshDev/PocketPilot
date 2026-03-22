@@ -27,6 +27,7 @@ import '../widgets/alert_card.dart';
 import '../widgets/budget_card.dart';
 import '../widgets/challenge_card.dart';
 import '../widgets/financial_health_card.dart';
+import '../widgets/points_history_card.dart';
 import '../widgets/main_bottom_nav.dart';
 import '../widgets/prediction_card.dart';
 import '../widgets/sms_expense_dialog.dart';
@@ -83,6 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Challenge> _activeChallenges = const <Challenge>[];
   GamificationStats _gamificationStats = GamificationStats.empty;
   String? _recentlyCompletedChallengeId;
+  List<PointsHistoryEntry> _pointsHistory = [];
 
   // ── SMS auto-detection state ─────────────────────────────────────────────
   final Telephony _telephony = Telephony.instance;
@@ -735,6 +737,29 @@ class _HomeScreenState extends State<HomeScreen> {
         SnackBar(content: Text('🏅 Badge unlocked: $badge')),
       );
     }
+
+    await _loadPointsHistory();
+  }
+
+  Future<void> _loadPointsHistory() async {
+    final currentUser = AuthService.instance.currentUser;
+    final userId = widget.userId ?? currentUser?.id ?? 'guest';
+    
+    final history = await GamificationService.instance.getPointsHistory(userId);
+    
+    if (!mounted) return;
+    
+    setState(() {
+      _pointsHistory = history;
+    });
+  }
+
+  void _openPointsHistory() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PointsHistoryFullScreen(history: _pointsHistory),
+      ),
+    );
   }
 
   Future<void> _showChallengeCompletionDialog() async {
@@ -1194,36 +1219,130 @@ class _HomeScreenState extends State<HomeScreen> {
                         breakdown: _financialHealthScore,
                       ),
                       const SizedBox(height: 4),
+                      PointsHistoryCard(
+                        history: _pointsHistory,
+                        onViewAll: _openPointsHistory,
+                      ),
+                      const SizedBox(height: 8),
                       if (_activeChallenges.isNotEmpty) ...[
-                        const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              '🎯 Today\'s Savings Challenge',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.emoji_events_rounded,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Savings Challenges',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
+                              ],
                             ),
-                            TextButton(
-                              onPressed: _openChallengeDashboard,
-                              child: const Text('View All'),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                '${_gamificationStats.totalPoints} pts',
+                                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
                             ),
                           ],
                         ),
-                        ChallengeCard(
-                          challenge: _activeChallenges.first,
-                          highlightCompletion: _recentlyCompletedChallengeId ==
-                              _activeChallenges.first.id,
-                          onTap: _openChallengeDashboard,
+                        const SizedBox(height: 8),
+                        ..._activeChallenges.map(
+                          (challenge) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: ChallengeCard(
+                              challenge: challenge,
+                              highlightCompletion: _recentlyCompletedChallengeId ==
+                                  challenge.id,
+                              onTap: _openChallengeDashboard,
+                            ),
+                          ),
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Points: ${_gamificationStats.totalPoints} · Streak: ${_gamificationStats.currentStreak} days',
-                          style: Theme.of(context).textTheme.bodySmall,
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.local_fire_department_rounded,
+                                  color: Theme.of(context).colorScheme.tertiary,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Streak: ${_gamificationStats.currentStreak} days',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: Theme.of(context).colorScheme.tertiary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.workspace_premium_rounded,
+                                  color: Theme.of(context).colorScheme.secondary,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Best: ${_gamificationStats.bestStreak} days',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: Theme.of(context).colorScheme.secondary,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _ChallengeProgressChip(
+                              type: ChallengeType.daily,
+                              challenge: _activeChallenges.firstWhere(
+                                (c) => c.challengeType == ChallengeType.daily,
+                                orElse: () => _activeChallenges.first,
+                              ),
+                            ),
+                            _ChallengeProgressChip(
+                              type: ChallengeType.weekly,
+                              challenge: _activeChallenges.firstWhere(
+                                (c) => c.challengeType == ChallengeType.weekly,
+                                orElse: () => _activeChallenges.first,
+                              ),
+                            ),
+                            _ChallengeProgressChip(
+                              type: ChallengeType.streak,
+                              challenge: _activeChallenges.firstWhere(
+                                (c) => c.challengeType == ChallengeType.streak,
+                                orElse: () => _activeChallenges.first,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                       ..._alertMessages.map(
@@ -1922,4 +2041,105 @@ class _HowItWorksStep {
   final IconData icon;
   final String title;
   final String description;
+}
+
+class _ChallengeProgressChip extends StatelessWidget {
+  const _ChallengeProgressChip({
+    required this.type,
+    required this.challenge,
+  });
+
+  final ChallengeType type;
+  final Challenge challenge;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final progress = (challenge.progress * 100).round();
+    final color = _typeColor(type);
+    
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        margin: const EdgeInsets.only(right: 4),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(_typeIcon(type), color: color, size: 14),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _typeLabel(type),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: color,
+                          fontWeight: FontWeight.w600,
+                        ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  LinearProgressIndicator(
+                    value: challenge.progress.clamp(0.0, 1.0),
+                    minHeight: 3,
+                    borderRadius: BorderRadius.circular(2),
+                    color: color,
+                    backgroundColor: color.withOpacity(0.2),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    challenge.isCompleted ? '✓ Done' : '$progress%',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: challenge.isCompleted ? colorScheme.primary : color,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _typeLabel(ChallengeType type) {
+    switch (type) {
+      case ChallengeType.daily:
+        return 'Daily';
+      case ChallengeType.weekly:
+        return 'Weekly';
+      case ChallengeType.streak:
+        return 'Streak';
+    }
+  }
+
+  Color _typeColor(ChallengeType type) {
+    switch (type) {
+      case ChallengeType.daily:
+        return const Color(0xFF4CAF50);
+      case ChallengeType.weekly:
+        return const Color(0xFF2196F3);
+      case ChallengeType.streak:
+        return const Color(0xFFFF9800);
+    }
+  }
+
+  IconData _typeIcon(ChallengeType type) {
+    switch (type) {
+      case ChallengeType.daily:
+        return Icons.today_rounded;
+      case ChallengeType.weekly:
+        return Icons.calendar_view_week_rounded;
+      case ChallengeType.streak:
+        return Icons.local_fire_department_rounded;
+    }
+  }
 }

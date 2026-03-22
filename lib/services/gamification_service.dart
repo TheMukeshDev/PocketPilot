@@ -30,7 +30,7 @@ class GamificationService {
 
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE $_gamificationTable (
@@ -42,6 +42,36 @@ class GamificationService {
             PRIMARY KEY (user_id, challenge_id, data_type)
           )
         ''');
+        await db.execute('''
+          CREATE TABLE points_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            challenge_id TEXT NOT NULL,
+            challenge_type TEXT NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT NOT NULL,
+            points_earned INTEGER NOT NULL,
+            saved_amount INTEGER NOT NULL,
+            earned_at TEXT NOT NULL
+          )
+        ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS points_history (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_id TEXT NOT NULL,
+              challenge_id TEXT NOT NULL,
+              challenge_type TEXT NOT NULL,
+              title TEXT NOT NULL,
+              description TEXT NOT NULL,
+              points_earned INTEGER NOT NULL,
+              saved_amount INTEGER NOT NULL,
+              earned_at TEXT NOT NULL
+            )
+          ''');
+        }
       },
     );
   }
@@ -130,12 +160,21 @@ class GamificationService {
         final progress =
             await _loadChallengeProgress(prefs, userId, challenge.id);
         if (!progress.isCompleted) {
+          final savedAmt = _calculateSavedAmount(challenge, todaySpent, yesterdaySpent);
           newlyCompleted.add(ChallengeCompletion(
             challenge: challenge,
             pointsEarned: challenge.rewardPoints,
-            savedAmount:
-                _calculateSavedAmount(challenge, todaySpent, yesterdaySpent),
+            savedAmount: savedAmt,
           ));
+
+          // Log to points history
+          await _logPointsHistory(
+            userId: userId,
+            challenge: challenge,
+            pointsEarned: challenge.rewardPoints,
+            savedAmount: savedAmt,
+            earnedAt: current,
+          );
 
           // Mark as completed in local SP + MongoDB
           final updatedProgress = ChallengeProgress(
@@ -658,6 +697,70 @@ class GamificationService {
       );
     } catch (_) {
       return GamificationStats.empty;
+    }
+  }
+
+  Future<void> _logPointsHistory({
+    required String userId,
+    required Challenge challenge,
+    required int pointsEarned,
+    required int savedAmount,
+    required DateTime earnedAt,
+  }) async {
+    try {
+      final db = await gamificationDatabase;
+      await db.insert('points_history', {
+        'user_id': userId,
+        'challenge_id': challenge.id,
+        'challenge_type': challenge.challengeType.name,
+        'title': challenge.title,
+        'description': challenge.description,
+        'points_earned': pointsEarned,
+        'saved_amount': savedAmount,
+        'earned_at': earnedAt.toIso8601String(),
+      });
+    } catch (_) {}
+  }
+
+  Future<List<PointsHistoryEntry>> getPointsHistory(String userId, {int limit = 50}) async {
+    try {
+      final db = await gamificationDatabase;
+      final results = await db.query(
+        'points_history',
+        where: 'user_id = ?',
+        whereArgs: [userId],
+        orderBy: 'earned_at DESC',
+        limit: limit,
+      );
+      
+      return results.map((row) => PointsHistoryEntry(
+        id: row['id'].toString(),
+        challengeId: row['challenge_id'] as String,
+        challengeType: ChallengeType.values.firstWhere(
+          (v) => v.name == row['challenge_type'],
+          orElse: () => ChallengeType.daily,
+        ),
+        title: row['title'] as String,
+        description: row['description'] as String,
+        pointsEarned: row['points_earned'] as int,
+        savedAmount: row['saved_amount'] as int,
+        earnedAt: DateTime.parse(row['earned_at'] as String),
+      )).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<int> getTotalPointsFromHistory(String userId) async {
+    try {
+      final db = await gamificationDatabase;
+      final result = await db.rawQuery(
+        'SELECT SUM(points_earned) as total FROM points_history WHERE user_id = ?',
+        [userId],
+      );
+      return (result.first['total'] as num?)?.toInt() ?? 0;
+    } catch (_) {
+      return 0;
     }
   }
 }

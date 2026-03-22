@@ -262,3 +262,54 @@ class ChallengeEvaluation {
   final List<ChallengeCompletion> newlyCompleted;
   final List<String> newlyUnlockedBadges;
 }
+
+class PointsHistoryEntry {
+  const PointsHistoryEntry({
+    required this.id,
+    required this.challengeId,
+    required this.challengeType,
+    required this.title,
+    required this.description,
+    required this.pointsEarned,
+    required this.savedAmount,
+    required this.earnedAt,
+  });
+
+  final String id;
+  final String challengeId;
+  final ChallengeType challengeType;
+  final String title;
+  final String description;
+  final int pointsEarned;
+  final int savedAmount;
+  final DateTime earnedAt;
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'challengeId': challengeId,
+      'challengeType': challengeType.name,
+      'title': title,
+      'description': description,
+      'pointsEarned': pointsEarned,
+      'savedAmount': savedAmount,
+      'earnedAt': earnedAt.toIso8601String(),
+    };
+  }
+
+  factory PointsHistoryEntry.fromMap(Map<String, dynamic> map) {
+    return PointsHistoryEntry(
+      id: map['id']?.toString() ?? '',
+      challengeId: map['challengeId']?.toString() ?? '',
+      challengeType: ChallengeType.values.firstWhere(
+        (v) => v.name == map['challengeType']?.toString(),
+        orElse: () => ChallengeType.daily,
+      ),
+      title: map['title']?.toString() ?? '',
+      description: map['description']?.toString() ?? '',
+      pointsEarned: (map['pointsEarned'] as num?)?.toInt() ?? 0,
+      savedAmount: (map['savedAmount'] as num?)?.toInt() ?? 0,
+      earnedAt: DateTime.tryParse(map['earnedAt']?.toString() ?? '') ?? DateTime.now(),
+    );
+  }
+}
