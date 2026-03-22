@@ -230,8 +230,6 @@ class _ChallengeCardState extends State<ChallengeCard>
     switch (type) {
       case ChallengeType.daily:
         return colorScheme.primary;
-      case ChallengeType.weekly:
-        return colorScheme.secondary;
       case ChallengeType.monthly:
         return colorScheme.tertiary;
       case ChallengeType.streak:
@@ -243,8 +241,6 @@ class _ChallengeCardState extends State<ChallengeCard>
     switch (type) {
       case ChallengeType.daily:
         return Icons.today_rounded;
-      case ChallengeType.weekly:
-        return Icons.calendar_view_week_rounded;
       case ChallengeType.monthly:
         return Icons.calendar_month_rounded;
       case ChallengeType.streak:

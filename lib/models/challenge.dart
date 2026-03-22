@@ -1,4 +1,4 @@
-enum ChallengeType { daily, weekly, monthly, streak }
+enum ChallengeType { daily, monthly, streak }
 
 class Challenge {
   const Challenge({
@@ -95,7 +95,6 @@ class ChallengeProgress {
     required this.lastUpdatedDate,
     this.pointsAwarded = false,
     this.notificationSent = false,
-    this.historyEntryCreated = false,
     this.completedAt,
   });
 
@@ -107,7 +106,6 @@ class ChallengeProgress {
   final DateTime lastUpdatedDate;
   final bool pointsAwarded;
   final bool notificationSent;
-  final bool historyEntryCreated;
   final DateTime? completedAt;
 
   factory ChallengeProgress.empty(String challengeId, String cycleKey, int target) {
@@ -130,7 +128,6 @@ class ChallengeProgress {
     DateTime? lastUpdatedDate,
     bool? pointsAwarded,
     bool? notificationSent,
-    bool? historyEntryCreated,
     DateTime? completedAt,
   }) {
     return ChallengeProgress(
@@ -142,14 +139,12 @@ class ChallengeProgress {
       lastUpdatedDate: lastUpdatedDate ?? this.lastUpdatedDate,
       pointsAwarded: pointsAwarded ?? this.pointsAwarded,
       notificationSent: notificationSent ?? this.notificationSent,
-      historyEntryCreated: historyEntryCreated ?? this.historyEntryCreated,
       completedAt: completedAt ?? this.completedAt,
     );
   }
 
   bool get canAwardPoints => isCompleted && !pointsAwarded;
   bool get canSendNotification => isCompleted && !notificationSent;
-  bool get canCreateHistory => isCompleted && !historyEntryCreated;
 
   Map<String, dynamic> toMap() {
     return {
@@ -161,7 +156,6 @@ class ChallengeProgress {
       'lastUpdatedDate': lastUpdatedDate.toIso8601String(),
       'pointsAwarded': pointsAwarded,
       'notificationSent': notificationSent,
-      'historyEntryCreated': historyEntryCreated,
       'completedAt': completedAt?.toIso8601String(),
     };
   }
@@ -177,7 +171,6 @@ class ChallengeProgress {
           DateTime.tryParse(map['lastUpdatedDate']?.toString() ?? '') ?? DateTime.now(),
       pointsAwarded: map['pointsAwarded'] == true,
       notificationSent: map['notificationSent'] == true,
-      historyEntryCreated: map['historyEntryCreated'] == true,
       completedAt: map['completedAt'] != null
           ? DateTime.tryParse(map['completedAt'].toString())
           : null,
@@ -321,61 +314,6 @@ class ChallengeEvaluation {
   final GamificationStats stats;
   final List<ChallengeCompletion> newlyCompleted;
   final List<String> newlyUnlockedBadges;
-}
-
-class PointsHistoryEntry {
-  const PointsHistoryEntry({
-    required this.id,
-    required this.challengeId,
-    required this.challengeType,
-    required this.title,
-    required this.description,
-    required this.pointsEarned,
-    required this.savedAmount,
-    required this.earnedAt,
-    required this.cycleKey,
-  });
-
-  final String id;
-  final String challengeId;
-  final ChallengeType challengeType;
-  final String title;
-  final String description;
-  final int pointsEarned;
-  final int savedAmount;
-  final DateTime earnedAt;
-  final String cycleKey;
-
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'challengeId': challengeId,
-      'challengeType': challengeType.name,
-      'title': title,
-      'description': description,
-      'pointsEarned': pointsEarned,
-      'savedAmount': savedAmount,
-      'earnedAt': earnedAt.toIso8601String(),
-      'cycleKey': cycleKey,
-    };
-  }
-
-  factory PointsHistoryEntry.fromMap(Map<String, dynamic> map) {
-    return PointsHistoryEntry(
-      id: map['id']?.toString() ?? '',
-      challengeId: map['challengeId']?.toString() ?? '',
-      challengeType: ChallengeType.values.firstWhere(
-        (v) => v.name == map['challengeType']?.toString(),
-        orElse: () => ChallengeType.daily,
-      ),
-      title: map['title']?.toString() ?? '',
-      description: map['description']?.toString() ?? '',
-      pointsEarned: (map['pointsEarned'] as num?)?.toInt() ?? 0,
-      savedAmount: (map['savedAmount'] as num?)?.toInt() ?? 0,
-      earnedAt: DateTime.tryParse(map['earnedAt']?.toString() ?? '') ?? DateTime.now(),
-      cycleKey: map['cycleKey']?.toString() ?? '',
-    );
-  }
 }
 
 class SavingsCalculation {

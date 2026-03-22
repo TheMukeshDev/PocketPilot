@@ -8,18 +8,16 @@ class StreakSavingsCard extends StatelessWidget {
     required this.stats,
     required this.challenges,
     this.onViewHistory,
-    this.onViewPointsLog,
   });
 
   final GamificationStats stats;
   final List<Challenge> challenges;
   final VoidCallback? onViewHistory;
-  final VoidCallback? onViewPointsLog;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final totalSavedThisWeek = _calculateWeeklySavings();
+    final totalSavedThisMonth = _calculateMonthlySavings();
 
     return Card(
       shape: RoundedRectangleBorder(
@@ -111,8 +109,8 @@ class StreakSavingsCard extends StatelessWidget {
                   child: _StreakStat(
                     icon: Icons.savings_rounded,
                     iconColor: colorScheme.primary,
-                    label: 'This Week',
-                    value: '₹$totalSavedThisWeek',
+                    label: 'This Month',
+                    value: '₹$totalSavedThisMonth',
                     suffix: 'saved',
                     bgColor: colorScheme.primaryContainer.withOpacity(0.5),
                   ),
@@ -138,36 +136,19 @@ class StreakSavingsCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: onViewHistory,
-                    icon: const Icon(Icons.leaderboard_rounded, size: 18),
-                    label: const Text('View History'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onViewHistory,
+                icon: const Icon(Icons.leaderboard_rounded, size: 18),
+                label: const Text('View Challenges'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: onViewPointsLog,
-                    icon: const Icon(Icons.history_rounded, size: 18),
-                    label: const Text('Points Log'),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ],
         ),
@@ -175,16 +156,15 @@ class StreakSavingsCard extends StatelessWidget {
     );
   }
 
-  int _calculateWeeklySavings() {
+  int _calculateMonthlySavings() {
     if (challenges.isEmpty) return 0;
     
-    final weeklyChallenge = challenges.firstWhere(
-      (c) => c.challengeType == ChallengeType.weekly,
+    final monthlyChallenge = challenges.firstWhere(
+      (c) => c.challengeType == ChallengeType.monthly,
       orElse: () => challenges.first,
     );
     
-    final target = weeklyChallenge.targetAmount;
-    final saved = (weeklyChallenge.progress * target).round();
+    final saved = monthlyChallenge.currentSavings;
     return saved;
   }
 }
@@ -324,8 +304,6 @@ class _ChallengeMini extends StatelessWidget {
     switch (type) {
       case ChallengeType.daily:
         return const Color(0xFF4CAF50);
-      case ChallengeType.weekly:
-        return const Color(0xFF2196F3);
       case ChallengeType.monthly:
         return const Color(0xFF9C27B0);
       case ChallengeType.streak:
@@ -337,8 +315,6 @@ class _ChallengeMini extends StatelessWidget {
     switch (type) {
       case ChallengeType.daily:
         return Icons.today_rounded;
-      case ChallengeType.weekly:
-        return Icons.calendar_view_week_rounded;
       case ChallengeType.monthly:
         return Icons.calendar_month_rounded;
       case ChallengeType.streak:
