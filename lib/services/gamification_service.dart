@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
 
 import '../models/challenge.dart';
 import '../models/expense.dart';
@@ -13,6 +14,37 @@ class GamificationService {
   static const String _userGamificationKeyPrefix = 'user_gamification_';
   static const String _challengeProgressKeyPrefix = 'challenge_progress_';
   static const String _dailyCompletionsKeyPrefix = 'daily_completions_';
+  static const String _gamificationTable = 'gamification_data';
+
+  Database? _gamificationDb;
+
+  Future<Database> get gamificationDatabase async {
+    if (_gamificationDb != null) return _gamificationDb!;
+    _gamificationDb = await _initGamificationDatabase();
+    return _gamificationDb!;
+  }
+
+  Future<Database> _initGamificationDatabase() async {
+    final dbPath = await getDatabasesPath();
+    final path = '$dbPath/gamification.db';
+
+    return openDatabase(
+      path,
+      version: 1,
+      onCreate: (db, version) async {
+        await db.execute('''
+          CREATE TABLE $_gamificationTable (
+            user_id TEXT NOT NULL,
+            challenge_id TEXT NOT NULL,
+            data_type TEXT NOT NULL,
+            json_data TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY (user_id, challenge_id, data_type)
+          )
+        ''');
+      },
+    );
+  }
 
   /// Evaluate challenges with proper validation and prevent duplicate points
   Future<ChallengeEvaluation> evaluateChallenges({
@@ -238,37 +270,20 @@ class GamificationService {
     final weekEnd = weekStart.add(const Duration(days: 7));
     final weekSpent = _calculateWeekSpent(expenses, weekStart, weekEnd);
     
-    // Calculate weekly budget - sum of daily limits for past days in week
-    final actualNow = DateTime.now();
-    int weeklyBudget = 0;
+    // Calculate weekly budget - sum of daily limits for all days in week
+    final int weeklyBudget = dailyLimit * 7;
     
-    for (int i = 0; i < 7; i++) {
-      final day = weekStart.add(Duration(days: i));
-      final dayStart = DateTime(day.year, day.month, day.day);
-      final nowDayStart = DateTime(actualNow.year, actualNow.month, actualNow.day);
-      
-      // Count only past days (including today if before current time or after 6 PM)
-      final isPastDay = dayStart.isBefore(nowDayStart); 
-      final isTodayAndComplete = dayStart.isAtSameMomentAs(nowDayStart) && actualNow.hour >= 18;
-      
-      if (isPastDay || isTodayAndComplete) {
-        weeklyBudget += dailyLimit;
-      }
-    }
-    
-    // Weekly saved = weekly budget - actual week spent
+    // Calculate actual savings: budget minus what was spent
     final weeklySaved = (weeklyBudget - weekSpent).clamp(0, weeklyBudget);
     
-    // Progress based on savings vs target
-    final weeklyProgress = weeklyTarget > 0 && weeklyBudget > 0
-        ? (weeklySaved / weeklyTarget).clamp(0.0, 1.0)
-        : 0.0;
+    // Calculate progress as a ratio of saved vs target
+    double weeklyProgress = 0.0;
+    if (weeklyTarget > 0) {
+      weeklyProgress = (weeklySaved / weeklyTarget).clamp(0.0, 1.0);
+    }
     
-    // Week is complete on Sunday after 6 PM or next week
-    final weekComplete = current.weekday == DateTime.sunday && actualNow.hour >= 18;
-    final weeklyCompleted = weekComplete 
-        ? weeklySaved >= weeklyTarget 
-        : false;
+    // Week is completed only when saved amount reaches target
+    final weeklyCompleted = weeklySaved >= weeklyTarget;
 
     challenges.add(Challenge(
       id: 'weekly_${_weekKey(current)}',
@@ -443,5 +458,206 @@ class GamificationService {
     final dayOfYear = date.difference(DateTime(date.year, 1, 1)).inDays + 1;
     final week = ((dayOfYear - date.weekday + 10) / 7).floor();
     return '${date.year}-W${week.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> resetAllGamificationData(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    await prefs.remove(_userGamificationKey(userId));
+    await prefs.remove(_dailyCompletionsKey(userId));
+    
+    final keys = prefs.getKeys();
+    for (final key in keys) {
+      if (key.startsWith(_challengeProgressKeyPrefix) && key.contains(userId)) {
+        await prefs.remove(key);
+      }
+    }
+    
+    await _saveUserGamification(prefs, userId, UserGamification.empty);
+    
+    await _saveToSqlite(userId, 'reset', {
+      'totalPoints': 0,
+      'currentStreak': 0,
+      'bestStreak': 0,
+      'lastCompletedDate': null,
+      'resetAt': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<Map<String, dynamic>> getGamificationDataFromSqlite(String userId) async {
+    try {
+      final db = await gamificationDatabase;
+      final results = await db.query(
+        _gamificationTable,
+        where: 'user_id = ? AND data_type = ?',
+        whereArgs: [userId, 'gamification'],
+      );
+      
+      if (results.isNotEmpty) {
+        return jsonDecode(results.first['json_data'] as String) as Map<String, dynamic>;
+      }
+    } catch (_) {}
+    
+    return {};
+  }
+
+  Future<void> _saveToSqlite(String userId, String dataType, Map<String, dynamic> data) async {
+    try {
+      final db = await gamificationDatabase;
+      await db.insert(
+        _gamificationTable,
+        {
+          'user_id': userId,
+          'challenge_id': 'main',
+          'data_type': dataType,
+          'json_data': jsonEncode(data),
+          'updated_at': DateTime.now().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (_) {}
+  }
+
+  Future<Map<String, dynamic>> recalculateFromExpenses({
+    required List<Expense> expenses,
+    required int dailyLimit,
+    required String userId,
+    DateTime? now,
+  }) async {
+    final current = now ?? DateTime.now();
+    
+    int currentStreak = 0;
+    int bestStreak = 0;
+    final byDay = <String, int>{};
+    
+    for (final expense in expenses) {
+      final key = _dateKey(expense.date);
+      byDay[key] = (byDay[key] ?? 0) + expense.amount;
+    }
+    
+    final sortedDays = byDay.keys.toList()..sort();
+    int tempStreak = 0;
+    DateTime? previousDay;
+    
+    for (final dayKey in sortedDays) {
+      final dayTotal = byDay[dayKey] ?? 0;
+      final dayDate = DateTime.parse(dayKey);
+      
+      if (dayTotal <= dailyLimit) {
+        if (previousDay != null && dayDate.difference(previousDay).inDays == 1) {
+          tempStreak++;
+        } else {
+          tempStreak = 1;
+        }
+        
+        if (tempStreak > bestStreak) {
+          bestStreak = tempStreak;
+        }
+      } else {
+        tempStreak = 0;
+      }
+      
+      previousDay = dayDate;
+    }
+    
+    currentStreak = 0;
+    for (var i = 0; i < 30; i++) {
+      final day = DateTime(current.year, current.month, current.day).subtract(Duration(days: i));
+      final dayKey = _dateKey(day);
+      final dayTotal = byDay[dayKey] ?? 0;
+      
+      if (dayTotal <= dailyLimit) {
+        currentStreak++;
+      } else {
+        break;
+      }
+    }
+    
+    const weeklyTarget = 300;
+    final weekStart = current.subtract(Duration(days: current.weekday - 1));
+    final weekEnd = weekStart.add(const Duration(days: 7));
+    final weekSpent = _calculateWeekSpent(expenses, weekStart, weekEnd);
+    final weeklyBudget = dailyLimit * 7;
+    final weeklySaved = (weeklyBudget - weekSpent).clamp(0, weeklyBudget);
+    
+    int totalPointsEarned = 0;
+    
+    for (final dayKey in sortedDays) {
+      final dayTotal = byDay[dayKey] ?? 0;
+      if (dayTotal <= dailyLimit) {
+        totalPointsEarned += 20;
+      }
+    }
+    
+    if (bestStreak > 0 && bestStreak % 7 == 0) {
+      totalPointsEarned += (bestStreak ~/ 7) * 50;
+    }
+    
+    if (weeklySaved >= weeklyTarget) {
+      totalPointsEarned += 40;
+    }
+    
+    if (currentStreak >= 7) {
+      totalPointsEarned += 60;
+    }
+    
+    final result = {
+      'totalPoints': totalPointsEarned,
+      'currentStreak': currentStreak,
+      'bestStreak': bestStreak,
+      'weeklySaved': weeklySaved,
+      'weeklyTarget': weeklyTarget,
+      'weeklyBudget': weeklyBudget,
+      'weekSpent': weekSpent,
+      'calculatedAt': DateTime.now().toIso8601String(),
+    };
+    
+    await _saveToSqlite(userId, 'gamification', result);
+    
+    final prefs = await SharedPreferences.getInstance();
+    final updatedGamification = UserGamification(
+      totalPoints: totalPointsEarned,
+      currentStreak: currentStreak,
+      bestStreak: bestStreak,
+      lastCompletedDate: currentStreak > 0 ? current : null,
+    );
+    await _saveUserGamification(prefs, userId, updatedGamification);
+    
+    return result;
+  }
+
+  Future<GamificationStats> getVerifiedStats(String userId) async {
+    final sqliteData = await getGamificationDataFromSqlite(userId);
+    
+    if (sqliteData.isNotEmpty) {
+      return GamificationStats(
+        totalPoints: (sqliteData['totalPoints'] as num?)?.toInt() ?? 0,
+        currentStreak: (sqliteData['currentStreak'] as num?)?.toInt() ?? 0,
+        bestStreak: (sqliteData['bestStreak'] as num?)?.toInt() ?? 0,
+        badgesUnlocked: <String>[],
+      );
+    }
+    
+    final prefs = await SharedPreferences.getInstance();
+    return _loadGamificationStats(prefs, userId);
+  }
+
+  GamificationStats _loadGamificationStats(SharedPreferences prefs, String userId) {
+    final raw = prefs.getString(_userGamificationKey(userId));
+    if (raw == null || raw.isEmpty) {
+      return GamificationStats.empty;
+    }
+
+    try {
+      final map = jsonDecode(raw) as Map<String, dynamic>;
+      return GamificationStats(
+        totalPoints: (map['totalPoints'] as num?)?.toInt() ?? 0,
+        currentStreak: (map['currentStreak'] as num?)?.toInt() ?? 0,
+        bestStreak: (map['bestStreak'] as num?)?.toInt() ?? 0,
+        badgesUnlocked: <String>[],
+      );
+    } catch (_) {
+      return GamificationStats.empty;
+    }
   }
 }

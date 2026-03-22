@@ -5,6 +5,7 @@ import '../models/app_notification.dart';
 import '../services/auth_service.dart';
 import '../services/budget_cycle_preferences.dart';
 import '../services/date_cycle_service.dart';
+import '../services/gamification_service.dart';
 import '../services/notification_preferences_service.dart';
 import '../services/sms_tracking_preferences.dart';
 import '../services/theme_service.dart';
@@ -467,6 +468,65 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _resetGamification() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reset Gamification?'),
+        content: const Text(
+          'This will reset all points, streaks, and challenge progress to zero. Your expenses will not be affected.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final userId = AuthService.instance.currentUser?.id ?? 'guest';
+    await GamificationService.instance.resetAllGamificationData(userId);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Gamification data has been reset to zero.')),
+    );
+  }
+
+  Future<void> _recalculateGamification() async {
+    final userId = AuthService.instance.currentUser?.id ?? 'guest';
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Recalculating points from expenses...')),
+    );
+
+    final result = await GamificationService.instance.recalculateFromExpenses(
+      expenses: const [],
+      dailyLimit: 500,
+      userId: userId,
+    );
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Recalculated: ${result['totalPoints']} points, streak: ${result['currentStreak']} days',
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -763,6 +823,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: _openBudgetCycleDialog,
+          ),
+
+          // ── Gamification Reset ───────────────────────────────────────
+          const _SectionHeader(label: 'Gamification & Points'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _resetGamification,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text(
+                  'Reset Points & Challenges',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _recalculateGamification,
+                icon: const Icon(Icons.calculate_rounded),
+                label: const Text('Recalculate from Expenses'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
           ),
 
           // ── Account ──────────────────────────────────────────────────
