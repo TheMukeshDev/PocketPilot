@@ -1,158 +1,294 @@
+# PocketPilot - Smart Budget Tracker for Students
 
-# PocketPilot – Smart Budget Tracker for Students
 ![App Logo](screenshots/logo.jpeg)
 
-**Hackathon:** TRAE Re{Vibe}
+**Hackathon:** TRAE Re{Vibe}  
 **Team Name:** Quantum Coders
 
-PocketPilot helps students track spending, predict overspending, and manage their monthly budget intelligently.
+PocketPilot is an AI-powered smart budget tracker designed specifically for students. It helps track spending, predict overspending, manage monthly budgets, and build healthy financial habits through gamification.
 
 ---
 
 ## Problem Statement
 
-Students often face a practical money-management problem:
+Students often face practical money-management challenges:
 
-- They run out of money before the end of the month.
-- They usually do not track daily spending consistently.
-- Many existing finance apps are overloaded with features and too complex for student use.
+- Running out of money before the end of the month
+- Inconsistent daily spending tracking
+- Complex finance apps that are overwhelming for student use
 
-Why this matters:
-
-- Financial stress directly affects academic focus, productivity, and well-being.
-- Small daily expenses become large monthly leaks when not tracked.
-- Students need a lightweight, smart, and actionable budgeting assistant—not a heavy accounting tool.
+**Why it matters:**
+- Financial stress directly affects academic focus and well-being
+- Small daily expenses become large monthly leaks when untracked
+- Students need a lightweight, smart, and actionable budgeting assistant
 
 ---
 
 ## Solution
 
-PocketPilot is designed as a student-first budgeting app that combines simplicity with smart insights.
+PocketPilot is a student-first budgeting app combining simplicity with intelligent insights:
 
-It solves the problem through:
-
-- **Daily spending limit** based on remaining budget and days left in the month
-- **Expense tracking** with categories and quick add flow
-- **AI overspending prediction** using current spending pace
-- **Spending analytics** via visual charts and monthly reports
-- **Receipt scanner (OCR)** to auto-fill expense details
-- **Smart alerts** when spending patterns become risky
+- **Smart daily limits** based on remaining budget and days left
+- **AI overspending prediction** using spending pace analysis
+- **Gamification system** with daily/weekly challenges and badges
+- **Receipt scanning** with OCR to auto-fill expense details
+- **Financial health scoring** with personalized insights
+- **Cloud sync** for data backup across devices
 
 ---
 
 ## Features
 
-### Core Features
+### Authentication & Onboarding
+- Email/Password registration and login
+- Google Sign-In authentication
+- Demo mode for trying features without account
+- 4-step onboarding flow for new users
+- Email verification support
 
-- Monthly budget tracking
-- Rent deduction from total monthly budget
-- Expense categories
-- Daily spending limit
-- Expense history
+### Budget Management
+- Monthly budget setting with rent deduction
+- Dynamic daily spending limit calculation
+- Budget cycle management (custom start date)
+- Real-time budget remaining tracking
 
-### Advanced Features
+### Expense Tracking
+- Quick expense entry with categories
+- Expense history with filtering
+- Multiple payment apps integration
+- QR code scanning for UPI payments
+- SMS-based expense auto-detection
+- Receipt scanning with OCR (Google ML Kit)
 
-- Spending analytics charts
-- Monthly report
-- AI overspending prediction
-- Smart alerts
-- Receipt scanner (OCR)
-- Cloud sync
-- Google login
+### Analytics & Reports
+- Spending analytics charts (weekly/monthly)
+- Category-wise spending breakdown
+- Monthly spending reports (PDF export)
+- Weekly trends visualization
+- Financial health score calculation
+
+### AI & Predictions
+- Overspending prediction based on spending pace
+- Personalized tips for budget optimization
+- Smart alerts for risky spending patterns
+- Daily spending recommendations
+
+### Gamification System
+- **Daily Challenges:** Stay under budget each day (20 points)
+- **Weekly Challenges:** Save ₹300 over 7 days (40 points)
+- **Streak Tracking:** Consecutive days under budget
+- **Badges:** Unlock achievements (First Save, Week Warrior, etc.)
+- **Points History:** Track earned rewards
+- **Weekly Bonus:** 50 points for 7-day streak milestones
+
+### Notifications & Alerts
+- Daily spending reminders
+- Budget threshold alerts
+- Challenge completion notifications
+- Smart spending alerts
+- Configurable notification preferences
+
+### Settings & Customization
+- Theme support (Light/Dark)
+- Budget cycle configuration
+- Notification preferences
+- Data export options
+- Firebase status indicator
+- Profile management
 
 ---
 
-## App Screens
+## Screens
 
-- Login Screen
-- Register Screen
-- Home Dashboard
-- Add Expense Screen
-- Monthly Report Screen
-- Weekly Trends Screen
+| Screen | Description |
+|--------|-------------|
+| Login Screen | Email/Password, Google Sign-In, Demo mode |
+| Onboarding | 4-step welcome flow for new users |
+| Home Dashboard | Budget summary, recent expenses, predictions, challenges |
+| Add Expense | Quick expense entry with categories and receipt scan |
+| Payment History | Full expense history with search and filters |
+| Monthly Report | Category breakdown, top expenses, PDF export |
+| Weekly Trends | Visual charts for weekly spending patterns |
+| Challenges | Daily/Weekly challenges, streaks, badges, points history |
+| Alerts | Smart spending alerts and warnings |
+| Notifications | All app notifications and reminders |
+| Scan Receipt | Camera-based receipt scanning with OCR |
+| Scan QR/Pay | UPI QR code scanning for payment apps |
+| Payment | Payment app shortcuts (GPay, PhonePe, Paytm) |
+| Settings | App preferences, theme, notifications, about |
 
 ---
 
 ## Tech Stack
 
-### Frontend
+### Frontend Framework
+- **Flutter** - Cross-platform mobile development
 
-- Flutter
+### Backend & Cloud
+- **Firebase Authentication** - User authentication
+- **Cloud Firestore** - Cloud data storage (optional)
+- **MongoDB Atlas** - Alternative cloud sync option
 
-### Backend / Cloud
+### Local Storage
+- **SQLite (sqflite)** - Local database for expenses
+- **SharedPreferences** - App settings and session storage
 
-- Firebase Authentication
-- Cloud Firestore
-- (Optional API sync layer / extensible backend support)
+### AI & ML
+- **Google ML Kit** - Text recognition for receipt scanning
 
-### Database
+### Libraries & Packages
 
-- SQLite (local storage via `sqflite`)
-
-### Libraries
-
-- `fl_chart`
-- `google_mlkit_text_recognition`
-- `firebase_auth`
-- `cloud_firestore`
-- `google_sign_in`
-- `provider`
+| Category | Packages |
+|----------|----------|
+| Charts | `fl_chart` |
+| Authentication | `firebase_auth`, `google_sign_in` |
+| Database | `sqflite`, `shared_preferences` |
+| Cloud | `cloud_firestore`, `mongo_dart` |
+| ML/OCR | `google_mlkit_text_recognition`, `image_picker` |
+| Notifications | `flutter_local_notifications`, `timezone` |
+| Payments | `upi_india`, `mobile_scanner` |
+| PDF/Printing | `pdf`, `printing` |
+| UI Components | `confetti`, `cupertino_icons` |
+| Utilities | `flutter_dotenv`, `intl`, `connectivity_plus`, `url_launcher`, `http`, `path_provider`, `telephony` |
 
 ---
 
 ## Project Structure
 
-```text
-lib/
-  models/      # Data models (Expense, User, etc.)
-  services/    # Business logic (auth, DB, sync, prediction, reports)
-  screens/     # UI screens (login, home, add expense, reports)
-  widgets/     # Reusable UI components (cards, charts, etc.)
-  utils/       # Helpers (OCR parsing, demo seed helper, utilities)
 ```
-
-Folder overview:
-
-- `models/`: Strongly typed app entities and mapping helpers.
-- `services/`: App logic for persistence, authentication, notifications, analytics, and sync.
-- `screens/`: Route-level UI pages used in the app flow.
-- `widgets/`: Reusable presentation components to keep screens clean.
-- `utils/`: Utility helpers for OCR parsing, demo seed data, and supportive functions.
+lib/
+├── main.dart                    # App entry point
+├── firebase_options.dart        # Firebase configuration
+│
+├── models/                      # Data models
+│   ├── app_notification.dart
+│   ├── challenge.dart           # Challenge, Gamification models
+│   ├── expense.dart             # Expense model
+│   └── user.dart                # User model
+│
+├── services/                    # Business logic
+│   ├── app_config.dart          # Environment configuration
+│   ├── app_logger.dart          # Error logging
+│   ├── auth_service.dart        # Authentication
+│   ├── budget_cycle_preferences.dart
+│   ├── challenge_service.dart   # Challenge generation
+│   ├── database_service.dart    # SQLite operations
+│   ├── date_cycle_service.dart  # Budget cycle management
+│   ├── expense_service.dart     # Expense CRUD
+│   ├── financial_score_service.dart  # Health score
+│   ├── gamification_service.dart    # Points, badges, streaks
+│   ├── mongo_expense_repository.dart
+│   ├── mongo_gamification_repository.dart
+│   ├── notification_preferences_service.dart
+│   ├── notification_service.dart    # Push notifications
+│   ├── notification_trigger_service.dart
+│   ├── payment_service.dart     # Payment app integration
+│   ├── prediction_service.dart  # AI spending prediction
+│   ├── receipt_scanner_service.dart # OCR processing
+│   ├── report_service.dart      # PDF report generation
+│   ├── sms_expense_parser.dart  # SMS parsing
+│   ├── sms_tracking_preferences.dart
+│   └── theme_service.dart       # Theme management
+│
+├── screens/                     # UI screens
+│   ├── about_app_screen.dart
+│   ├── add_expense_screen.dart
+│   ├── alerts_screen.dart
+│   ├── challenge_screen.dart
+│   ├── home_screen.dart
+│   ├── login_screen.dart
+│   ├── monthly_report_screen.dart
+│   ├── notifications_screen.dart
+│   ├── onboarding_screen.dart
+│   ├── payment_history_screen.dart
+│   ├── payment_screen.dart
+│   ├── register_screen.dart
+│   ├── scan_qr_payment_screen.dart
+│   ├── scan_receipt_screen.dart
+│   ├── settings_screen.dart
+│   └── weekly_trends_screen.dart
+│
+├── widgets/                     # Reusable components
+│   ├── alert_card.dart
+│   ├── budget_card.dart
+│   ├── budget_summary_card.dart
+│   ├── challenge_card.dart
+│   ├── empty_states.dart
+│   ├── expense_card.dart
+│   ├── financial_health_card.dart
+│   ├── home_header.dart
+│   ├── main_bottom_nav.dart
+│   ├── notification_tile.dart
+│   ├── payment_app_card.dart
+│   ├── points_history_card.dart
+│   ├── prediction_card.dart
+│   ├── safe_builder.dart
+│   ├── smart_date_selector.dart
+│   ├── sms_expense_dialog.dart
+│   ├── spending_chart.dart
+│   └── streak_savings_card.dart
+│
+└── utils/                       # Helpers
+    ├── demo_seed_helper.dart
+    ├── receipt_ocr_helper.dart
+    └── upi_payment_validation.dart
+```
 
 ---
 
 ## Installation Guide
 
-### 1) Install Flutter
+### Prerequisites
+- Flutter SDK (3.3.4+)
+- Android Studio / Xcode
+- Firebase account
 
-- Follow the official Flutter setup guide for your OS.
-- Verify installation:
+### Steps
 
-```bash
-flutter --version
-```
-
-### 2) Clone Repository
-
+#### 1. Clone Repository
 ```bash
 git clone https://github.com/TheMukeshDev/PocketPilot.git
 cd PocketPilot
 ```
 
-### 3) Install Dependencies
-
+#### 2. Install Dependencies
 ```bash
 flutter pub get
 ```
 
-### 4) Configure Firebase
+#### 3. Configure Firebase
+1. Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
+2. Register Android and iOS apps
+3. Download config files:
+   - Android: `android/app/google-services.json`
+   - iOS: `ios/Runner/GoogleService-Info.plist`
+4. Enable **Email/Password** and **Google** providers in Firebase Authentication
 
-- Add Android config file: `android/app/google-services.json`
-- Add iOS config file: `ios/Runner/GoogleService-Info.plist`
-- Enable Email/Password and Google Sign-In in Firebase Authentication.
+#### 4. Configure Environment Variables
+Create a `.env` file in the project root:
 
-### 5) Run Application
+```env
+# App Configuration
+ENABLE_DEMO_LOGIN=true
+DEMO_EMAIL=test@gmail.com
+DEMO_PASSWORD=123456
+ENABLE_SMS_AUTOTRACK=false
 
+# Google Sign-In
+GOOGLE_WEB_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
+
+# Firebase Configuration
+FIREBASE_API_KEY=your-api-key
+FIREBASE_APP_ID=1:xxx:android:xxx
+FIREBASE_MESSAGING_SENDER_ID=xxx
+FIREBASE_PROJECT_ID=your-project
+FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+
+# AI (Optional)
+GEMINI_API_KEY=your-gemini-key
+```
+
+#### 5. Run the App
 ```bash
 flutter run
 ```
@@ -161,101 +297,135 @@ flutter run
 
 ## Configuration
 
-### Environment Variables (`.env`)
+### Environment Variables (.env)
 
-- Copy `.env.example` to `.env`.
-- Fill all values before running the app.
-- `.env` is ignored by git and should never be committed.
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ENABLE_DEMO_LOGIN` | No | Enable demo mode (default: false) |
+| `DEMO_EMAIL` | No | Demo account email |
+| `DEMO_PASSWORD` | No | Demo account password |
+| `ENABLE_SMS_AUTOTRACK` | No | Auto-detect expenses from SMS |
+| `GOOGLE_WEB_CLIENT_ID` | Yes* | Google Sign-In client ID |
+| `FIREBASE_API_KEY` | Yes* | Firebase API key |
+| `FIREBASE_APP_ID` | Yes* | Firebase app ID |
+| `FIREBASE_MESSAGING_SENDER_ID` | Yes* | Firebase sender ID |
+| `FIREBASE_PROJECT_ID` | Yes* | Firebase project ID |
+| `FIREBASE_STORAGE_BUCKET` | Yes* | Firebase storage bucket |
+| `GEMINI_API_KEY` | No | Gemini AI for enhanced OCR |
 
-Required keys:
+*Required for Firebase authentication to work
 
-- `ENABLE_DEMO_LOGIN`
-- `DEMO_EMAIL`
-- `DEMO_PASSWORD`
-- `ENABLE_SMS_AUTOTRACK`
-- `GOOGLE_WEB_CLIENT_ID`
-- `GEMINI_API_KEY` (optional, required only for AI receipt extraction)
-- `FIREBASE_API_KEY`
-- `FIREBASE_APP_ID`
-- `FIREBASE_MESSAGING_SENDER_ID`
-- `FIREBASE_PROJECT_ID`
-- `FIREBASE_STORAGE_BUCKET`
+### Google Sign-In Setup
+1. Enable Google provider in Firebase Console
+2. Add SHA-1 and SHA-256 fingerprints to Android app settings
+3. Re-download `google-services.json` after adding fingerprints
 
-### Firebase
-
-- Create a Firebase project.
-- Register Android/iOS apps.
-- Download and place:
-  - `android/app/google-services.json`
-  - `ios/Runner/GoogleService-Info.plist`
-
-### Google Sign-In
-
-- Enable Google provider in Firebase Authentication.
-- Configure SHA-1 and SHA-256 for Android in Firebase console.
-- Re-download `google-services.json` after SHA setup updates.
-
-### Database
-
-- Local persistence uses SQLite (`sqflite`).
-- Database initializes on app start and stores expenses for offline usage.
+### MongoDB (Optional)
+For cloud sync alternative:
+```env
+MONGO_URI=mongodb+srv://user:password@cluster.mongodb.net
+MONGO_DB_NAME=budget_tracker
+```
 
 ---
 
-## Usage
+## Usage Flow
 
-1. Login (Email/Password or Google).
-2. Set your monthly budget (and rent if applicable).
-3. Add expenses manually or via receipt scan.
-4. View spending chart and monthly report.
-5. Check AI overspending prediction and smart alerts.
+### New User
+1. Complete onboarding flow (4 steps)
+2. Set monthly budget and rent (if any)
+3. Start tracking expenses
+
+### Daily Usage
+1. Add expenses manually or via receipt scan
+2. View spending chart on home dashboard
+3. Check AI prediction for overspending warnings
+4. Complete daily challenges to earn points
+5. Receive smart alerts for risky spending
+
+### Weekly Review
+1. View monthly report with category breakdown
+2. Export PDF report for records
+3. Check weekly trends
+4. Complete weekly challenges
+5. Unlock new badges
 
 ---
 
 ## Demo Flow (Hackathon)
 
-**Suggested 90-second flow:**
+**Suggested 90-second demo:**
 
-1. Login with demo/test account.
-2. Add an expense quickly.
-3. Use **Scan Receipt** to auto-fill merchant + amount.
-4. Save and show updated chart on Home.
-5. Open Monthly Report for category breakdown and top expenses.
-6. Show AI prediction card with overspend warning.
-7. Trigger/show smart alert behavior.
-8. (Optional) Tap Sync to demonstrate cloud sync.
+1. Login with demo account
+2. Show onboarding flow for new users
+3. Add expense quickly (manual entry)
+4. Use **Scan Receipt** to auto-fill merchant + amount
+5. Display updated home dashboard with chart
+6. Show AI prediction card with overspend warning
+7. View Challenges screen with points and badges
+8. Trigger/show smart alert behavior
+9. Export monthly report as PDF
 
-Flow summary:
+**Demo Flow:**
+```
+Login → Onboarding → Add Expense → Scan Receipt → 
+View Chart → AI Prediction → Challenges → Smart Alert → PDF Export
+```
 
-`Login → Add Expense → Scan Receipt → View Chart → AI Prediction → Smart Alert`
+---
+
+## Quick Commands
+
+```bash
+# Install dependencies
+flutter pub get
+
+# Analyze code
+flutter analyze
+
+# Run tests
+flutter test
+
+# Build debug APK
+flutter build apk --debug
+
+# Build release APK
+flutter build apk --release
+
+# Clean and rebuild
+flutter clean && flutter pub get && flutter build apk --debug
+```
 
 ---
 
 ## Future Improvements
 
-- Voice expense entry
-- Financial health score
-- Expense sharing with friends/groups
-- Dark mode customization enhancements
-- Bank SMS auto-detection
+- [ ] Voice expense entry
+- [ ] Bank SMS auto-detection
+- [ ] Expense sharing with friends/groups
+- [ ] Investment tracking
+- [ ] Bill reminders
+- [ ] Multi-currency support
+- [ ] Dark mode enhancements
+- [ ] Widgets for home screen
 
 ---
 
 ## Contributing
 
-Contributions are welcome.
+Contributions are welcome!
 
-1. Fork the repository.
-2. Create a feature branch.
-3. Commit your changes with clear messages.
-4. Run checks (`flutter analyze`, tests).
-5. Open a pull request with a concise description.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ---
 
 ## License
 
-MIT License
+MIT License - See [LICENSE](LICENSE) file for details.
 
 ---
 
@@ -263,23 +433,14 @@ MIT License
 
 **Mukesh**
 
-- GitHub: https://github.com/TheMukeshDev
+- GitHub: [TheMukeshDev](https://github.com/TheMukeshDev)
 
 ---
 
-## Demo Screenshots
+## Screenshots
 
 ![Login Screen](screenshots/login.jpeg)
 ![Home Screen](screenshots/home.jpeg)
 ![Add Expense Screen](screenshots/add_expense.jpeg)
 ![Settings Screen](screenshots/settings.jpeg)
 ![Scan QR & Pay Screen](screenshots/scan.jpeg)
-
-## Quick Commands
-
-```bash
-flutter pub get
-flutter analyze
-flutter test
-flutter run
-```
