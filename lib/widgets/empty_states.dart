@@ -251,7 +251,7 @@ class StreakEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Stay under your daily budget to build a streak and earn bonus points.',
+              'Add at least one bill or payment daily to build a streak and earn bonus points.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),

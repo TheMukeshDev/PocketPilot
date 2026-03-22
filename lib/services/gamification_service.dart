@@ -148,10 +148,11 @@ class GamificationService {
     final alreadyProcessedToday = dailyCompletions.contains(todayKey);
 
     final todaySpent = _calculateDaySpent(expenses, current);
+    final todayHasExpense = _hasExpenseForDay(expenses, current);
 
     final actualNow = DateTime.now();
     final dayComplete = actualNow.hour >= 18 || actualNow.day != current.day;
-    final todayValid = dayComplete && todaySpent <= dailyLimit;
+    final todayValid = dayComplete && todayHasExpense;
 
     final updatedGamification = _updateStreakAndPoints(
       userGamification,
@@ -401,8 +402,8 @@ class GamificationService {
 
     return Challenge(
       id: _getStreakCycleKey(current),
-      title: 'Stay under limit for $streakTarget days',
-      description: 'Maintain spending under daily limit for $streakTarget consecutive days.',
+      title: 'Track expenses for $streakTarget days',
+      description: 'Add at least one bill or payment each day for $streakTarget consecutive days.',
       targetAmount: streakTarget,
       rewardPoints: streakRewardPoints,
       progress: streakProgress,
@@ -420,6 +421,13 @@ class GamificationService {
     return expenses
         .where((e) => !e.date.isBefore(dayStart) && e.date.isBefore(dayEnd))
         .fold(0, (sum, e) => sum + e.amount);
+  }
+
+  bool _hasExpenseForDay(List<Expense> expenses, DateTime date) {
+    final dayStart = DateTime(date.year, date.month, date.day);
+    final dayEnd = dayStart.add(const Duration(days: 1));
+
+    return expenses.any((e) => !e.date.isBefore(dayStart) && e.date.isBefore(dayEnd));
   }
 
   int _calculateSavedAmount(Challenge challenge, List<Expense> expenses, DateTime current, int dailyLimit, DateTime? cycleStart) {
@@ -706,33 +714,28 @@ class GamificationService {
     
     int currentStreak = 0;
     int bestStreak = 0;
-    final byDay = <String, int>{};
+    final daysWithExpense = <String>{};
     
     for (final expense in expenses) {
       final key = _dateKey(expense.date);
-      byDay[key] = (byDay[key] ?? 0) + expense.amount;
+      daysWithExpense.add(key);
     }
     
-    final sortedDays = byDay.keys.toList()..sort();
+    final sortedDays = daysWithExpense.toList()..sort();
     int tempStreak = 0;
     DateTime? previousDay;
     
     for (final dayKey in sortedDays) {
-      final dayTotal = byDay[dayKey] ?? 0;
       final dayDate = DateTime.parse(dayKey);
       
-      if (dayTotal <= dailyLimit) {
-        if (previousDay != null && dayDate.difference(previousDay).inDays == 1) {
-          tempStreak++;
-        } else {
-          tempStreak = 1;
-        }
-        
-        if (tempStreak > bestStreak) {
-          bestStreak = tempStreak;
-        }
+      if (previousDay != null && dayDate.difference(previousDay).inDays == 1) {
+        tempStreak++;
       } else {
-        tempStreak = 0;
+        tempStreak = 1;
+      }
+      
+      if (tempStreak > bestStreak) {
+        bestStreak = tempStreak;
       }
       
       previousDay = dayDate;
@@ -742,9 +745,8 @@ class GamificationService {
     for (var i = 0; i < 30; i++) {
       final day = DateTime(current.year, current.month, current.day).subtract(Duration(days: i));
       final dayKey = _dateKey(day);
-      final dayTotal = byDay[dayKey] ?? 0;
       
-      if (dayTotal <= dailyLimit) {
+      if (daysWithExpense.contains(dayKey)) {
         currentStreak++;
       } else {
         break;
@@ -761,10 +763,7 @@ class GamificationService {
     int totalPointsEarned = 0;
     
     for (final dayKey in sortedDays) {
-      final dayTotal = byDay[dayKey] ?? 0;
-      if (dayTotal <= dailyLimit) {
-        totalPointsEarned += dailyRewardPoints;
-      }
+      totalPointsEarned += dailyRewardPoints;
     }
     
     if (bestStreak > 0 && bestStreak % 7 == 0) {
