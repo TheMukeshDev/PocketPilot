@@ -213,6 +213,8 @@ class _PointsHistoryItem extends StatelessWidget {
         return const Color(0xFF4CAF50);
       case ChallengeType.weekly:
         return const Color(0xFF2196F3);
+      case ChallengeType.monthly:
+        return const Color(0xFF9C27B0);
       case ChallengeType.streak:
         return const Color(0xFFFF9800);
     }
@@ -224,6 +226,8 @@ class _PointsHistoryItem extends StatelessWidget {
         return Icons.today_rounded;
       case ChallengeType.weekly:
         return Icons.calendar_view_week_rounded;
+      case ChallengeType.monthly:
+        return Icons.calendar_month_rounded;
       case ChallengeType.streak:
         return Icons.local_fire_department_rounded;
     }
@@ -478,6 +482,8 @@ class _PointsHistoryDetailItem extends StatelessWidget {
         return const Color(0xFF4CAF50);
       case ChallengeType.weekly:
         return const Color(0xFF2196F3);
+      case ChallengeType.monthly:
+        return const Color(0xFF9C27B0);
       case ChallengeType.streak:
         return const Color(0xFFFF9800);
     }
@@ -489,6 +495,8 @@ class _PointsHistoryDetailItem extends StatelessWidget {
         return Icons.today_rounded;
       case ChallengeType.weekly:
         return Icons.calendar_view_week_rounded;
+      case ChallengeType.monthly:
+        return Icons.calendar_month_rounded;
       case ChallengeType.streak:
         return Icons.local_fire_department_rounded;
     }

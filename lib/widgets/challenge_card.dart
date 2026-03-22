@@ -232,8 +232,10 @@ class _ChallengeCardState extends State<ChallengeCard>
         return colorScheme.primary;
       case ChallengeType.weekly:
         return colorScheme.secondary;
-      case ChallengeType.streak:
+      case ChallengeType.monthly:
         return colorScheme.tertiary;
+      case ChallengeType.streak:
+        return Colors.orange;
     }
   }
 
@@ -243,6 +245,8 @@ class _ChallengeCardState extends State<ChallengeCard>
         return Icons.today_rounded;
       case ChallengeType.weekly:
         return Icons.calendar_view_week_rounded;
+      case ChallengeType.monthly:
+        return Icons.calendar_month_rounded;
       case ChallengeType.streak:
         return Icons.local_fire_department_rounded;
     }

@@ -25,6 +25,22 @@ class AppLogger {
     return file.path;
   }
 
+  Future<void> debug(
+    String tag,
+    String message, {
+    Map<String, Object?>? context,
+  }) {
+    if (kDebugMode) {
+      return _write(
+        level: 'DEBUG',
+        tag: tag,
+        message: message,
+        context: context,
+      );
+    }
+    return Future.value();
+  }
+
   Future<void> info(
     String tag,
     String message, {

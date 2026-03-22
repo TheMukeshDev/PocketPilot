@@ -1,4 +1,4 @@
-enum ChallengeType { daily, weekly, streak }
+enum ChallengeType { daily, weekly, monthly, streak }
 
 class Challenge {
   const Challenge({
@@ -10,6 +10,8 @@ class Challenge {
     required this.progress,
     required this.isCompleted,
     required this.challengeType,
+    this.cycleKey = '',
+    this.currentSavings = 0,
   });
 
   final String id;
@@ -20,6 +22,8 @@ class Challenge {
   final double progress;
   final bool isCompleted;
   final ChallengeType challengeType;
+  final String cycleKey;
+  final int currentSavings;
 
   Challenge copyWith({
     String? id,
@@ -30,6 +34,8 @@ class Challenge {
     double? progress,
     bool? isCompleted,
     ChallengeType? challengeType,
+    String? cycleKey,
+    int? currentSavings,
   }) {
     return Challenge(
       id: id ?? this.id,
@@ -40,6 +46,8 @@ class Challenge {
       progress: progress ?? this.progress,
       isCompleted: isCompleted ?? this.isCompleted,
       challengeType: challengeType ?? this.challengeType,
+      cycleKey: cycleKey ?? this.cycleKey,
+      currentSavings: currentSavings ?? this.currentSavings,
     );
   }
 
@@ -53,6 +61,8 @@ class Challenge {
       'progress': progress,
       'isCompleted': isCompleted,
       'challengeType': challengeType.name,
+      'cycleKey': cycleKey,
+      'currentSavings': currentSavings,
     };
   }
 
@@ -69,6 +79,8 @@ class Challenge {
         (value) => value.name == map['challengeType']?.toString(),
         orElse: () => ChallengeType.daily,
       ),
+      cycleKey: map['cycleKey']?.toString() ?? '',
+      currentSavings: (map['currentSavings'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -76,53 +88,99 @@ class Challenge {
 class ChallengeProgress {
   const ChallengeProgress({
     required this.challengeId,
+    required this.cycleKey,
     required this.currentProgress,
     required this.target,
     required this.isCompleted,
     required this.lastUpdatedDate,
+    this.pointsAwarded = false,
+    this.notificationSent = false,
+    this.historyEntryCreated = false,
+    this.completedAt,
   });
 
   final String challengeId;
+  final String cycleKey;
   final int currentProgress;
   final int target;
   final bool isCompleted;
   final DateTime lastUpdatedDate;
+  final bool pointsAwarded;
+  final bool notificationSent;
+  final bool historyEntryCreated;
+  final DateTime? completedAt;
+
+  factory ChallengeProgress.empty(String challengeId, String cycleKey, int target) {
+    return ChallengeProgress(
+      challengeId: challengeId,
+      cycleKey: cycleKey,
+      currentProgress: 0,
+      target: target,
+      isCompleted: false,
+      lastUpdatedDate: DateTime.now(),
+    );
+  }
 
   ChallengeProgress copyWith({
     String? challengeId,
+    String? cycleKey,
     int? currentProgress,
     int? target,
     bool? isCompleted,
     DateTime? lastUpdatedDate,
+    bool? pointsAwarded,
+    bool? notificationSent,
+    bool? historyEntryCreated,
+    DateTime? completedAt,
   }) {
     return ChallengeProgress(
       challengeId: challengeId ?? this.challengeId,
+      cycleKey: cycleKey ?? this.cycleKey,
       currentProgress: currentProgress ?? this.currentProgress,
       target: target ?? this.target,
       isCompleted: isCompleted ?? this.isCompleted,
       lastUpdatedDate: lastUpdatedDate ?? this.lastUpdatedDate,
+      pointsAwarded: pointsAwarded ?? this.pointsAwarded,
+      notificationSent: notificationSent ?? this.notificationSent,
+      historyEntryCreated: historyEntryCreated ?? this.historyEntryCreated,
+      completedAt: completedAt ?? this.completedAt,
     );
   }
+
+  bool get canAwardPoints => isCompleted && !pointsAwarded;
+  bool get canSendNotification => isCompleted && !notificationSent;
+  bool get canCreateHistory => isCompleted && !historyEntryCreated;
 
   Map<String, dynamic> toMap() {
     return {
       'challengeId': challengeId,
+      'cycleKey': cycleKey,
       'currentProgress': currentProgress,
       'target': target,
       'isCompleted': isCompleted,
       'lastUpdatedDate': lastUpdatedDate.toIso8601String(),
+      'pointsAwarded': pointsAwarded,
+      'notificationSent': notificationSent,
+      'historyEntryCreated': historyEntryCreated,
+      'completedAt': completedAt?.toIso8601String(),
     };
   }
 
   factory ChallengeProgress.fromMap(Map<String, dynamic> map) {
     return ChallengeProgress(
       challengeId: map['challengeId']?.toString() ?? '',
+      cycleKey: map['cycleKey']?.toString() ?? '',
       currentProgress: (map['currentProgress'] as num?)?.toInt() ?? 0,
       target: (map['target'] as num?)?.toInt() ?? 0,
       isCompleted: map['isCompleted'] == true,
       lastUpdatedDate:
-          DateTime.tryParse(map['lastUpdatedDate']?.toString() ?? '') ??
-              DateTime.now(),
+          DateTime.tryParse(map['lastUpdatedDate']?.toString() ?? '') ?? DateTime.now(),
+      pointsAwarded: map['pointsAwarded'] == true,
+      notificationSent: map['notificationSent'] == true,
+      historyEntryCreated: map['historyEntryCreated'] == true,
+      completedAt: map['completedAt'] != null
+          ? DateTime.tryParse(map['completedAt'].toString())
+          : null,
     );
   }
 }
@@ -242,11 +300,13 @@ class ChallengeCompletion {
     required this.challenge,
     required this.pointsEarned,
     required this.savedAmount,
+    required this.isNewCompletion,
   });
 
   final Challenge challenge;
   final int pointsEarned;
   final int savedAmount;
+  final bool isNewCompletion;
 }
 
 class ChallengeEvaluation {
@@ -273,6 +333,7 @@ class PointsHistoryEntry {
     required this.pointsEarned,
     required this.savedAmount,
     required this.earnedAt,
+    required this.cycleKey,
   });
 
   final String id;
@@ -283,6 +344,7 @@ class PointsHistoryEntry {
   final int pointsEarned;
   final int savedAmount;
   final DateTime earnedAt;
+  final String cycleKey;
 
   Map<String, dynamic> toMap() {
     return {
@@ -294,6 +356,7 @@ class PointsHistoryEntry {
       'pointsEarned': pointsEarned,
       'savedAmount': savedAmount,
       'earnedAt': earnedAt.toIso8601String(),
+      'cycleKey': cycleKey,
     };
   }
 
@@ -310,6 +373,32 @@ class PointsHistoryEntry {
       pointsEarned: (map['pointsEarned'] as num?)?.toInt() ?? 0,
       savedAmount: (map['savedAmount'] as num?)?.toInt() ?? 0,
       earnedAt: DateTime.tryParse(map['earnedAt']?.toString() ?? '') ?? DateTime.now(),
+      cycleKey: map['cycleKey']?.toString() ?? '',
     );
   }
+}
+
+class SavingsCalculation {
+  const SavingsCalculation({
+    required this.totalSavings,
+    required this.daysUnderBudget,
+    required this.totalDays,
+    required this.cycleStart,
+    required this.cycleEnd,
+    required this.dailyBreakdown,
+  });
+
+  final int totalSavings;
+  final int daysUnderBudget;
+  final int totalDays;
+  final DateTime cycleStart;
+  final DateTime cycleEnd;
+  final Map<String, int> dailyBreakdown;
+
+  double get progressPercentage {
+    if (totalDays == 0) return 0.0;
+    return (daysUnderBudget / totalDays).clamp(0.0, 1.0);
+  }
+
+  bool get isFullySaved => daysUnderBudget >= totalDays;
 }
