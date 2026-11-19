@@ -17,10 +17,16 @@ class AppLogger {
   Future<File>? _logFileFuture;
 
   Future<void> initialize() async {
+    if (kIsWeb) {
+      return;
+    }
     await _resolveLogFile();
   }
 
   Future<String> getLogFilePath() async {
+    if (kIsWeb) {
+      return 'Browser console';
+    }
     final file = await _resolveLogFile();
     return file.path;
   }
@@ -150,6 +156,13 @@ class AppLogger {
     StackTrace? stackTrace,
     Map<String, Object?>? context,
   }) async {
+    if (kIsWeb) {
+      debugPrint('$level $tag: $message');
+      if (error != null) {
+        debugPrint(error.toString());
+      }
+      return;
+    }
     try {
       final file = await _resolveLogFile();
       await _rotateIfNeeded(file.parent, file);

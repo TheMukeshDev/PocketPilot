@@ -20,7 +20,11 @@ import 'services/theme_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppConfig.load();
-  await AppLogger.instance.initialize();
+  try {
+    await AppLogger.instance.initialize();
+  } catch (error) {
+    debugPrint('Logger initialization failed: $error');
+  }
   _configureGlobalErrorLogging();
   try {
     if (AppConfig.isFirebaseConfigured) {
@@ -74,6 +78,15 @@ Future<void> _warmUpServices() async {
 
   try {
     await BackendApiClient.instance.loadToken();
+    if (AppConfig.isBackendConfigured) {
+      final reachable = await BackendApiClient.instance.ping();
+      if (!reachable) {
+        await AppLogger.instance.warning(
+          'startup',
+          'Backend is configured but did not respond.',
+        );
+      }
+    }
   } catch (error, stackTrace) {
     await AppLogger.instance.warning(
       'startup',

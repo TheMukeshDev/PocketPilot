@@ -1,5 +1,6 @@
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:flutter/foundation.dart';
 
 import '../models/expense.dart';
 
@@ -33,6 +34,11 @@ class DatabaseService implements ExpenseStore {
 
   @override
   Future<Database> initDatabase() async {
+    if (kIsWeb) {
+      throw UnsupportedError(
+        'SQLite database storage is not configured for Flutter Web.',
+      );
+    }
     if (_database != null) {
       return _database!;
     }

@@ -39,6 +39,11 @@ class BackendApiClient {
     _accessToken = prefs.getString(_tokenKey);
   }
 
+  Future<bool> ping() async {
+    final response = await get('/health');
+    return response.statusCode == 200;
+  }
+
   Future<void> setToken(String token) async {
     _accessToken = token;
     final prefs = await SharedPreferences.getInstance();
