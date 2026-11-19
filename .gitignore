@@ -58,3 +58,5 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 backend/*.db
+.env*
+!.env.example

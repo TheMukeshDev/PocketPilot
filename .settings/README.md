@@ -5,7 +5,7 @@
 ### Demo Mode
 - `ENABLE_DEMO_LOGIN=true` - Enable demo login
 - `DEMO_EMAIL=test@gmail.com` - Demo account email
-- `DEMO_PASSWORD=123456` - Demo account password
+- `DEMO_PASSWORD=<set-in-env>` - Demo account password
 
 ### SMS Auto-Tracking
 - `ENABLE_SMS_AUTOTRACK=false` - Enable SMS expense detection

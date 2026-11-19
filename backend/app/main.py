@@ -34,9 +34,9 @@ def create_app() -> FastAPI:
         title=settings.app_name,
         version="1.0.0",
         lifespan=lifespan,
-        docs_url=None if settings.is_production else "/docs",
-        redoc_url=None,
-        openapi_url=None if settings.is_production else "/openapi.json",
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_url="/openapi.json",
     )
     app.add_middleware(
         CORSMiddleware,
@@ -73,6 +73,15 @@ def create_app() -> FastAPI:
     @app.get("/health")
     async def health() -> dict:
         return {"status": "ok"}
+
+    @app.get("/")
+    async def root() -> dict:
+        return {
+            "name": settings.app_name,
+            "status": "ok",
+            "health": "/health",
+            "api": "/api/v1",
+        }
 
     @app.get("/health/ready")
     async def ready() -> dict:

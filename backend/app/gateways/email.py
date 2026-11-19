@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 async def send_email(to: str, subject: str, body: str) -> None:
     settings = get_settings()
-    if not settings.smtp_host:
+    if not settings.smtp_host or settings.app_env.lower() == "test":
         logger.info("email gateway not configured; would send %s to %s", subject, to)
         return
     message = EmailMessage()
