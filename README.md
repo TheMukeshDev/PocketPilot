@@ -125,9 +125,9 @@ PocketPilot is a student-first budgeting app combining simplicity with intellige
 - **Flutter** - Cross-platform mobile development
 
 ### Backend & Cloud
+- **FastAPI backend** - Server-side secrets, auth, sync, OCR, and reports (`backend/`)
 - **Firebase Authentication** - User authentication
 - **Cloud Firestore** - Cloud data storage (optional)
-- **MongoDB Atlas** - Alternative cloud sync option
 
 ### Local Storage
 - **SQLite (sqflite)** - Local database for expenses
@@ -143,13 +143,13 @@ PocketPilot is a student-first budgeting app combining simplicity with intellige
 | Charts | `fl_chart` |
 | Authentication | `firebase_auth`, `google_sign_in` |
 | Database | `sqflite`, `shared_preferences` |
-| Cloud | `cloud_firestore`, `mongo_dart` |
+| Cloud | `cloud_firestore`, optional backend HTTP client |
 | ML/OCR | `google_mlkit_text_recognition`, `image_picker` |
 | Notifications | `flutter_local_notifications`, `timezone` |
 | Payments | `upi_india`, `mobile_scanner` |
 | PDF/Printing | `pdf`, `printing` |
 | UI Components | `confetti`, `cupertino_icons` |
-| Utilities | `flutter_dotenv`, `intl`, `connectivity_plus`, `url_launcher`, `http`, `path_provider`, `telephony` |
+| Utilities | `intl`, `connectivity_plus`, `url_launcher`, `http`, `path_provider`, `telephony` |
 
 ---
 
@@ -170,6 +170,7 @@ lib/
 │   ├── app_config.dart          # Environment configuration
 │   ├── app_logger.dart          # Error logging
 │   ├── auth_service.dart        # Authentication
+│   ├── backend_api_client.dart  # Optional FastAPI client
 │   ├── budget_cycle_preferences.dart
 │   ├── challenge_service.dart   # Challenge generation
 │   ├── database_service.dart    # SQLite operations
@@ -177,8 +178,6 @@ lib/
 │   ├── expense_service.dart     # Expense CRUD
 │   ├── financial_score_service.dart  # Health score
 │   ├── gamification_service.dart    # Points, badges, streaks
-│   ├── mongo_expense_repository.dart
-│   ├── mongo_gamification_repository.dart
 │   ├── notification_preferences_service.dart
 │   ├── notification_service.dart    # Push notifications
 │   ├── notification_trigger_service.dart
@@ -264,29 +263,24 @@ flutter pub get
    - iOS: `ios/Runner/GoogleService-Info.plist`
 4. Enable **Email/Password** and **Google** providers in Firebase Authentication
 
-#### 4. Configure Environment Variables
-Create a `.env` file in the project root:
+#### 4. Configure Build-Time Values
+The app runs fully offline/local-first with no configuration. Add only the values you need as dart-defines:
 
-```env
-# App Configuration
-ENABLE_DEMO_LOGIN=true
-DEMO_EMAIL=test@gmail.com
-DEMO_PASSWORD=123456
-ENABLE_SMS_AUTOTRACK=false
-
-# Google Sign-In
-GOOGLE_WEB_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
-
-# Firebase Configuration
-FIREBASE_API_KEY=your-api-key
-FIREBASE_APP_ID=1:xxx:android:xxx
-FIREBASE_MESSAGING_SENDER_ID=xxx
-FIREBASE_PROJECT_ID=your-project
-FIREBASE_STORAGE_BUCKET=your-project.appspot.com
-
-# AI (Optional)
-GEMINI_API_KEY=your-gemini-key
+```bash
+flutter run \
+  --dart-define=ENABLE_DEMO_LOGIN=true \
+  --dart-define=DEMO_EMAIL=test@example.com \
+  --dart-define=DEMO_PASSWORD=your-demo-password \
+  --dart-define=GOOGLE_WEB_CLIENT_ID=your-web-client-id.apps.googleusercontent.com \
+  --dart-define=FIREBASE_API_KEY=your-api-key \
+  --dart-define=FIREBASE_APP_ID=1:xxx:android:xxx \
+  --dart-define=FIREBASE_MESSAGING_SENDER_ID=xxx \
+  --dart-define=FIREBASE_PROJECT_ID=your-project \
+  --dart-define=FIREBASE_STORAGE_BUCKET=your-project.appspot.com \
+  --dart-define=API_BASE_URL=https://your-backend.example.com
 ```
+
+Never put Gemini, MongoDB, SMTP, or backend secret keys in dart-defines or app assets. They belong in `backend/.env` on the server.
 
 #### 5. Run the App
 ```bash
@@ -297,11 +291,11 @@ flutter run
 
 ## Configuration
 
-### Environment Variables (.env)
+### Build-Time Configuration (dart-defines)
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `ENABLE_DEMO_LOGIN` | No | Enable demo mode (default: false) |
+| `ENABLE_DEMO_LOGIN` | No | Enable demo mode (default: true) |
 | `DEMO_EMAIL` | No | Demo account email |
 | `DEMO_PASSWORD` | No | Demo account password |
 | `ENABLE_SMS_AUTOTRACK` | No | Auto-detect expenses from SMS |
@@ -311,21 +305,33 @@ flutter run
 | `FIREBASE_MESSAGING_SENDER_ID` | Yes* | Firebase sender ID |
 | `FIREBASE_PROJECT_ID` | Yes* | Firebase project ID |
 | `FIREBASE_STORAGE_BUCKET` | Yes* | Firebase storage bucket |
-| `GEMINI_API_KEY` | No | Gemini AI for enhanced OCR |
+| `API_BASE_URL` | No | Optional FastAPI backend URL |
 
-*Required for Firebase authentication to work
+*Required for Firebase authentication to work. The app still runs locally without them.
 
 ### Google Sign-In Setup
 1. Enable Google provider in Firebase Console
 2. Add SHA-1 and SHA-256 fingerprints to Android app settings
 3. Re-download `google-services.json` after adding fingerprints
 
-### MongoDB (Optional)
-For cloud sync alternative:
-```env
-MONGO_URI=mongodb+srv://user:password@cluster.mongodb.net
-MONGO_DB_NAME=budget_tracker
-```
+### Backend (Optional)
+The FastAPI backend lives in `backend/`. Start it with `docker compose up --build` from that directory, then pass its URL as `API_BASE_URL`.
+
+### Hosting the backend on Vercel
+1. Set these Vercel environment variables (Project Settings → Environment Variables):
+   - `SECRET_KEY` — long random value
+   - `DATABASE_URL` — hosted PostgreSQL URL (Vercel's filesystem is ephemeral, so SQLite is not persistent)
+   - `CORS_ORIGINS` — comma-separated Flutter web/APK origins
+   - `FIREBASE_SERVICE_ACCOUNT_JSON` — the entire Firebase service-account JSON as one string, server-side only
+   - `FIREBASE_PROJECT_ID`, `FIREBASE_API_KEY`, `FIREBASE_APP_ID`, `FIREBASE_MESSAGING_SENDER_ID`, `FIREBASE_STORAGE_BUCKET`
+   - `GEMINI_API_KEY` — optional, server-side only
+2. Deploy from the repository root with `vercel --prod`.
+3. Use the returned URL as `API_BASE_URL` when building the Flutter app.
+
+### Secret rules
+- Firebase service-account private keys, backend `SECRET_KEY`, SMTP passwords, and Gemini keys must never be passed as dart-defines or bundled into web/APK assets.
+- Only Firebase public config values may be baked into Flutter; they are identifiers, not secrets.
+- `google-services.json`, `.env`, and service-account JSON files are git-ignored. If a key is ever pasted or committed, revoke it in Firebase and create a new one.
 
 ---
 

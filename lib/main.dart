@@ -11,6 +11,7 @@ import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'services/app_config.dart';
 import 'services/app_logger.dart';
+import 'services/backend_api_client.dart';
 import 'services/auth_service.dart';
 import 'services/database_service.dart';
 import 'services/notification_service.dart';
@@ -22,9 +23,11 @@ Future<void> main() async {
   await AppLogger.instance.initialize();
   _configureGlobalErrorLogging();
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+    if (AppConfig.isFirebaseConfigured) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
   } catch (error, stackTrace) {
     await AppLogger.instance.error(
       'startup',
@@ -67,6 +70,17 @@ Future<void> _warmUpServices() async {
       stackTrace: stackTrace,
     );
     // AuthService surfaces a user-facing message if Firebase is misconfigured.
+  }
+
+  try {
+    await BackendApiClient.instance.loadToken();
+  } catch (error, stackTrace) {
+    await AppLogger.instance.warning(
+      'startup',
+      'Backend session restore failed during warm-up.',
+      error: error,
+      stackTrace: stackTrace,
+    );
   }
 
   try {

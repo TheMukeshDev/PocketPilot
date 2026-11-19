@@ -35,7 +35,7 @@ class ReportService {
             level: 0,
             child: pw.Text(
               'PocketPilot - Spending Report',
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 20),
+              style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 20),
             ),
           ),
           pw.SizedBox(height: 6),
@@ -54,14 +54,14 @@ class ReportService {
           pw.SizedBox(height: 16),
           pw.Text(
             'Expense Entries',
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14),
+            style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14),
           ),
           pw.SizedBox(height: 8),
           if (expenses.isEmpty)
             pw.Text('No expenses found for this period.')
           else
             pw.TableHelper.fromTextArray(
-              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              headerStyle: const pw.TextStyle(fontWeight: pw.FontWeight.bold),
               headers: const ['Date', 'Title', 'Category', 'Amount'],
               data: expenses
                   .map(
@@ -98,7 +98,7 @@ class ReportService {
           pw.SizedBox(height: 4),
           pw.Text(
             value,
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 13),
+            style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 13),
           ),
         ],
       ),

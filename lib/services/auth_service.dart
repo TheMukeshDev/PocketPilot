@@ -23,13 +23,13 @@ class AuthService {
 
   static bool get isDemoLoginEnabled {
     final demoEnabled = AppConfig.enableDemoLogin;
-    final hasDemoEmail = (AppConfig.demoEmail ?? '').isNotEmpty;
-    final hasDemoPassword = (AppConfig.demoPassword ?? '').isNotEmpty;
-    
+    final hasDemoEmail = AppConfig.demoEmail.isNotEmpty;
+    final hasDemoPassword = AppConfig.demoPassword.isNotEmpty;
+
     if (demoEnabled && hasDemoEmail && hasDemoPassword) {
       return true;
     }
-    
+
     return false;
   }
 
@@ -40,17 +40,17 @@ class AuthService {
       return 'Firebase configured ✓';
     }
     final missing = <String>[];
-    if (AppConfig.firebaseApiKey == null) missing.add('API_KEY');
-    if (AppConfig.firebaseAppId == null) missing.add('APP_ID');
-    if (AppConfig.firebaseMessagingSenderId == null) missing.add('SENDER_ID');
-    if (AppConfig.firebaseProjectId == null) missing.add('PROJECT_ID');
-    if (AppConfig.firebaseStorageBucket == null) missing.add('STORAGE_BUCKET');
+    if (AppConfig.firebaseApiKey.isEmpty) missing.add('API_KEY');
+    if (AppConfig.firebaseAppId.isEmpty) missing.add('APP_ID');
+    if (AppConfig.firebaseMessagingSenderId.isEmpty) missing.add('SENDER_ID');
+    if (AppConfig.firebaseProjectId.isEmpty) missing.add('PROJECT_ID');
+    if (AppConfig.firebaseStorageBucket.isEmpty) missing.add('STORAGE_BUCKET');
     return 'Firebase missing: ${missing.join(", ")}';
   }
 
-  static String get demoEmail => AppConfig.demoEmail ?? '';
+  static String get demoEmail => AppConfig.demoEmail;
 
-  static String get demoPassword => AppConfig.demoPassword ?? '';
+  static String get demoPassword => AppConfig.demoPassword;
 
   GoogleSignIn? _activeGoogleSignIn;
   Future<void>? _firebaseInitialization;
@@ -263,7 +263,7 @@ class AuthService {
   Future<AppUser> signInWithGoogle() async {
     if (!AppConfig.isFirebaseConfigured) {
       throw const _AuthFailedException(
-        'Firebase is not configured. Please check your .env file and ensure all FIREBASE_* variables are set correctly.',
+        'Firebase is not configured. Pass the FIREBASE_* dart-defines when building the app.',
       );
     }
 
@@ -271,8 +271,9 @@ class AuthService {
 
     try {
       final googleConfig = await _getGoogleSignInConfig();
-      final configuredWebClientId =
-          AppConfig.googleWebClientId ?? googleConfig.defaultWebClientId;
+      final configuredWebClientId = AppConfig.googleWebClientId.isNotEmpty
+          ? AppConfig.googleWebClientId
+          : googleConfig.defaultWebClientId;
 
       if (!googleConfig.isConfigured && configuredWebClientId == null) {
         await AppLogger.instance.warning(
@@ -316,7 +317,7 @@ class AuthService {
           'provider': 'google',
           'email': user.email,
           'hasDefaultWebClientId': googleConfig.defaultWebClientId != null,
-          'hasManualWebClientId': AppConfig.googleWebClientId != null,
+          'hasManualWebClientId': AppConfig.googleWebClientId.isNotEmpty,
         },
       );
       return user;

@@ -58,12 +58,12 @@ class _LoginScreenState extends State<LoginScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _FirebaseStatusRow('Configured', AuthService.instance.isFirebaseConfigured ? 'Yes ✓' : 'No ✗'),
-            _FirebaseStatusRow('API Key', AppConfig.firebaseApiKey != null ? 'Set ✓' : 'Missing ✗'),
-            _FirebaseStatusRow('App ID', AppConfig.firebaseAppId != null ? 'Set ✓' : 'Missing ✗'),
-            _FirebaseStatusRow('Sender ID', AppConfig.firebaseMessagingSenderId != null ? 'Set ✓' : 'Missing ✗'),
-            _FirebaseStatusRow('Project ID', AppConfig.firebaseProjectId != null ? 'Set ✓' : 'Missing ✗'),
-            _FirebaseStatusRow('Storage Bucket', AppConfig.firebaseStorageBucket != null ? 'Set ✓' : 'Missing ✗'),
-            _FirebaseStatusRow('Google Client ID', AppConfig.googleWebClientId != null ? 'Set ✓' : 'Missing ✗'),
+            _FirebaseStatusRow('API Key', AppConfig.firebaseApiKey.isNotEmpty ? 'Set ✓' : 'Missing ✗'),
+            _FirebaseStatusRow('App ID', AppConfig.firebaseAppId.isNotEmpty ? 'Set ✓' : 'Missing ✗'),
+            _FirebaseStatusRow('Sender ID', AppConfig.firebaseMessagingSenderId.isNotEmpty ? 'Set ✓' : 'Missing ✗'),
+            _FirebaseStatusRow('Project ID', AppConfig.firebaseProjectId.isNotEmpty ? 'Set ✓' : 'Missing ✗'),
+            _FirebaseStatusRow('Storage Bucket', AppConfig.firebaseStorageBucket.isNotEmpty ? 'Set ✓' : 'Missing ✗'),
+            _FirebaseStatusRow('Google Client ID', AppConfig.googleWebClientId.isNotEmpty ? 'Set ✓' : 'Missing ✗'),
           ],
         ),
         actions: [

@@ -1,10 +1,4 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-import 'package:http/http.dart' as http;
-
-import 'app_config.dart';
 
 /// Result of a receipt/screenshot scan.
 class ScannedReceiptData {
@@ -30,10 +24,6 @@ class ScannedReceiptData {
 }
 
 class ReceiptScannerService {
-  static String get _geminiApiKey => AppConfig.geminiApiKey ?? '';
-
-  static bool get isGeminiAvailable => _geminiApiKey.isNotEmpty;
-
   // Ordered list of all spending categories used throughout the app.
   static const List<String> allCategories = [
     'Food',
@@ -220,8 +210,7 @@ class ReceiptScannerService {
 
   // ─── Public entry point ───────────────────────────────────────────────────
 
-  /// Scans [imagePath] with OCR, then falls back to Gemini if amount is
-  /// missing and a Gemini API key is configured.
+  /// Scans [imagePath] with on-device OCR.
   static Future<ScannedReceiptData> scanFromPath(String imagePath) async {
     final rawText = await _runOcr(imagePath);
 
@@ -229,27 +218,6 @@ class ReceiptScannerService {
     final title = _extractTitle(rawText);
     final date = _extractDate(rawText);
     final category = _detectCategory(rawText);
-
-    if (_shouldUseGemini(
-          rawText: rawText,
-          amount: amount,
-          title: title,
-          category: category,
-        ) &&
-        isGeminiAvailable) {
-      try {
-        return await _analyzeWithGemini(
-          imagePath,
-          rawText,
-          amount,
-          title,
-          category,
-          date,
-        );
-      } catch (_) {
-        // Swallow Gemini errors; return best OCR result.
-      }
-    }
 
     return ScannedReceiptData(
       title: title,
@@ -453,7 +421,9 @@ class ReceiptScannerService {
       if (RegExp(
         r'^(txn|ref|utr|order|trans|invoice|gstin|gst)\s*[:\-#]?\s*\d',
         caseSensitive: false,
-      ).hasMatch(l)) return false;
+      ).hasMatch(l)) {
+        return false;
+      }
       return true;
     });
 
@@ -589,127 +559,5 @@ class ReceiptScannerService {
 
     if (scores.isEmpty) return 'Other';
     return scores.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
-  }
-
-  static bool _shouldUseGemini({
-    required String rawText,
-    required int? amount,
-    required String? title,
-    required String category,
-  }) {
-    if (amount == null || title == null || category == 'Other') {
-      return true;
-    }
-
-    if (_looksLikePaymentLine(rawText.toLowerCase())) {
-      return true;
-    }
-
-    final weakTitle = RegExp(
-      r'^\d{1,2}:\d{2}|transaction successful|scan result|payment|paid$',
-      caseSensitive: false,
-    ).hasMatch(title.trim());
-    return weakTitle;
-  }
-
-  // ─── Gemini AI fallback ───────────────────────────────────────────────────
-
-  static Future<ScannedReceiptData> _analyzeWithGemini(
-    String imagePath,
-    String ocrText,
-    int? ocrAmount,
-    String? ocrTitle,
-    String ocrCategory,
-    DateTime? ocrDate,
-  ) async {
-    final imageBytes = await File(imagePath).readAsBytes();
-    final base64Image = base64Encode(imageBytes);
-    final ext = imagePath.split('.').last.toLowerCase();
-    final mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
-
-    final prompt =
-        'You are PocketPilot receipt classifier. Analyze this payment screenshot or receipt carefully.\n'
-        'Return ONLY one compact JSON object with these keys: amount, title, date, category.\n'
-        'Rules:\n'
-        '- amount: final paid amount as integer number only. Ignore times, phone numbers, balances, IDs, data speeds, OTPs, and UPI ids.\n'
-        '- title: merchant name or short spending purpose, 2 to 5 words. Do not return generic labels like Transaction Successful or Paid.\n'
-        '- date: YYYY-MM-DD or null.\n'
-        '- category must be exactly one of: Food, Travel, Shopping, Recharge, Medical, Utilities, Entertainment, Study, Personal, Other.\n'
-        '- For Travel, use it for cab, auto, metro, train, bus, flight, fuel, petrol, parking, toll, ticket, commute, Rapido, Uber, Ola, IRCTC.\n'
-        '- Prioritize the spending purpose, not the payment app name.\n'
-        '- If the screenshot is a person-to-person transfer and the purpose is unclear, keep category as Other.\n'
-        '- Use OCR hints when useful but correct obvious OCR mistakes.\n\n'
-        'OCR hints:\n'
-        '- amount: ${ocrAmount?.toString() ?? 'null'}\n'
-        '- title: ${ocrTitle ?? 'null'}\n'
-        '- category: $ocrCategory\n'
-        '- date: ${ocrDate?.toIso8601String().split('T').first ?? 'null'}\n\n'
-        'Response example:\n'
-        '{"amount":250,"title":"Metro Recharge","date":"2025-01-15","category":"Travel"}';
-
-    final response = await http
-        .post(
-          Uri.parse(
-            'https://generativelanguage.googleapis.com/v1beta/models/'
-            'gemini-2.0-flash:generateContent?key=$_geminiApiKey',
-          ),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'contents': [
-              {
-                'parts': [
-                  {
-                    'inline_data': {
-                      'mime_type': mimeType,
-                      'data': base64Image,
-                    },
-                  },
-                  {'text': prompt},
-                ],
-              },
-            ],
-            'generationConfig': {
-              'temperature': 0.1,
-              'maxOutputTokens': 200,
-            },
-          }),
-        )
-        .timeout(const Duration(seconds: 25));
-
-    if (response.statusCode != 200) {
-      throw Exception('Gemini API returned ${response.statusCode}');
-    }
-
-    final bodyMap = jsonDecode(response.body) as Map<String, dynamic>;
-    final content =
-        bodyMap['candidates']?[0]?['content']?['parts']?[0]?['text'] as String?;
-    if (content == null) throw Exception('Empty Gemini response');
-
-    final jsonStr =
-        RegExp(r'\{[^{}]+\}', dotAll: true).firstMatch(content)?.group(0);
-    if (jsonStr == null) throw Exception('No JSON in Gemini response');
-
-    final data = jsonDecode(jsonStr) as Map<String, dynamic>;
-
-    final amount = (data['amount'] as num?)?.round() ?? ocrAmount;
-    final rawTitle = (data['title'] as String?)?.trim();
-    final catRaw = (data['category'] as String?) ?? ocrCategory;
-    final category = allCategories.contains(catRaw) ? catRaw : ocrCategory;
-
-    DateTime? date = ocrDate;
-    if (data['date'] is String) {
-      date = DateTime.tryParse(data['date'] as String) ?? ocrDate;
-    }
-
-    return ScannedReceiptData(
-      title: (rawTitle?.isNotEmpty ?? false)
-          ? _cleanExtractedTitle(rawTitle!)
-          : ocrTitle,
-      amount: amount,
-      category: category,
-      date: date,
-      rawText: ocrText,
-      usedAi: true,
-    );
   }
 }

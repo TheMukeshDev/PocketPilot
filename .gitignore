@@ -31,6 +31,13 @@ migrate_working_dir/
 .pub/
 /build/
 .env
+.env.*
+!.env.example
+.vercel
+*.pem
+**/serviceAccount*.json
+**/*service-account*.json
+**/*firebase-adminsdk*.json
 
 # Symbolication related
 app.*.symbols
@@ -44,3 +51,10 @@ app.*.map.json
 /android/app/release
 # Ignore Google Services config (contains API keys)
 android/app/google-services.json
+
+# Python/FastAPI backend
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+backend/*.db

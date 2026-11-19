@@ -31,11 +31,11 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static FirebaseOptions get android => FirebaseOptions(
-        apiKey: AppConfig.firebaseApiKey ?? 'MISSING_API_KEY',
-        appId: AppConfig.firebaseAppId ?? 'MISSING_APP_ID',
-        messagingSenderId: AppConfig.firebaseMessagingSenderId ?? 'MISSING_SENDER_ID',
-        projectId: AppConfig.firebaseProjectId ?? 'MISSING_PROJECT_ID',
-        storageBucket: AppConfig.firebaseStorageBucket ?? 'MISSING_BUCKET',
-      );
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: AppConfig.firebaseApiKey,
+    appId: AppConfig.firebaseAppId,
+    messagingSenderId: AppConfig.firebaseMessagingSenderId,
+    projectId: AppConfig.firebaseProjectId,
+    storageBucket: AppConfig.firebaseStorageBucket,
+  );
 }
