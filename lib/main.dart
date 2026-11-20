@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 
@@ -27,11 +28,9 @@ Future<void> main() async {
   }
   _configureGlobalErrorLogging();
   try {
-    if (AppConfig.isFirebaseConfigured) {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-    }
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   } catch (error, stackTrace) {
     await AppLogger.instance.error(
       'startup',
@@ -161,6 +160,7 @@ class MyApp extends StatelessWidget {
           themeMode: themeMode,
           theme: _buildAppTheme(Brightness.light),
           darkTheme: _buildAppTheme(Brightness.dark),
+          builder: kIsWeb ? _buildMobileWebShell : null,
           initialRoute: '/',
           routes: {
             '/': (context) => home ?? const _AuthGate(),
@@ -172,6 +172,53 @@ class MyApp extends StatelessWidget {
       },
     );
   }
+}
+
+Widget _buildMobileWebShell(BuildContext context, Widget? child) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  final outerColor =
+      isDark ? const Color(0xFF0A101D) : const Color(0xFFE8EEF5);
+
+  return ColoredBox(
+    color: outerColor,
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktopView = constraints.maxWidth > 560;
+        if (!isDesktopView) {
+          return child ?? const SizedBox.shrink();
+        }
+
+        final phoneHeight =
+            constraints.maxHeight > 940 ? 900.0 : constraints.maxHeight - 40;
+
+        return Center(
+          child: Container(
+            width: 430,
+            height: phoneHeight,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: isDark
+                    ? const Color(0xFF334155)
+                    : const Color(0xFFCBD5E1),
+                width: 1,
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x220F172A),
+                  blurRadius: 32,
+                  offset: Offset(0, 16),
+                ),
+              ],
+            ),
+            child: child ?? const SizedBox.shrink(),
+          ),
+        );
+      },
+    ),
+  );
 }
 
 ThemeData _buildAppTheme(Brightness brightness) {

@@ -1,0 +1,9 @@
+.dart_tool
+build
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/*.db
+.env
+.env.*
+!.env.example

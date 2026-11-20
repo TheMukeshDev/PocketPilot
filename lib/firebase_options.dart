@@ -11,9 +11,8 @@ class DefaultFirebaseOptions {
     if (_cachedOptions != null) return _cachedOptions!;
     
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions are not configured for web. Run flutterfire configure.',
-      );
+      _cachedOptions = web;
+      return _cachedOptions!;
     }
 
     switch (defaultTargetPlatform) {
@@ -30,6 +29,15 @@ class DefaultFirebaseOptions {
         );
     }
   }
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: AppConfig.firebaseApiKey,
+    appId: AppConfig.firebaseAppId,
+    messagingSenderId: AppConfig.firebaseMessagingSenderId,
+    projectId: AppConfig.firebaseProjectId,
+    storageBucket: AppConfig.firebaseStorageBucket,
+    authDomain: '${AppConfig.firebaseProjectId}.firebaseapp.com',
+  );
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: AppConfig.firebaseApiKey,
